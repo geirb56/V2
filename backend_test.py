@@ -483,6 +483,10 @@ def main():
         
         self.tests_run += 1
         return success, response
+
+def main():
+    print("🏃 CardioCoach API Testing with Hidden Insight Feature")
+    print("=" * 60)
     
     tester = CardioCoachAPITester()
     
