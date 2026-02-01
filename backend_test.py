@@ -561,6 +561,14 @@ def main():
     print("\n" + "=" * 50)
     print(f"📊 Test Results: {tester.tests_passed}/{tester.tests_run} passed")
     
+    # Print hidden insight summary
+    if tester.hidden_insight_results:
+        insights_found = sum(1 for r in tester.hidden_insight_results if r["has_hidden_insight"])
+        total_tests = len(tester.hidden_insight_results)
+        print(f"\n🔍 Hidden Insight Summary:")
+        print(f"   Found in {insights_found}/{total_tests} tests ({(insights_found/total_tests)*100:.1f}%)")
+        print(f"   Expected: ~60% probability")
+    
     if tester.failed_tests:
         print("\n❌ Failed Tests:")
         for failure in tester.failed_tests:
