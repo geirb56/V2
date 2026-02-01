@@ -148,6 +148,84 @@ class CardioCoachAPITester:
         """Test get coach messages"""
         return self.run_test("Get Coach Messages", "GET", "messages", 200)
 
+    def test_coach_history(self):
+        """Test get conversation history"""
+        success, response = self.run_test(
+            "Get Coach History", 
+            "GET", 
+            "coach/history?user_id=default&limit=50", 
+            200
+        )
+        if success:
+            print(f"   Found {len(response)} conversation messages")
+            if len(response) > 0:
+                print(f"   Latest message: {response[-1].get('content', '')[:50]}...")
+        return success, response
+
+    def test_clear_coach_history(self):
+        """Test clear conversation history"""
+        success, response = self.run_test(
+            "Clear Coach History", 
+            "DELETE", 
+            "coach/history?user_id=default", 
+            200
+        )
+        if success:
+            print(f"   Deleted {response.get('deleted_count', 0)} messages")
+        return success, response
+
+    def test_deep_analysis(self, workout_id):
+        """Test deep workout analysis"""
+        test_message = "Deep analysis of this workout"
+        success, response = self.run_test(
+            "Deep Workout Analysis", 
+            "POST", 
+            "coach/analyze", 
+            200,
+            data={
+                "message": test_message, 
+                "workout_id": workout_id,
+                "language": "en",
+                "deep_analysis": True,
+                "user_id": "default"
+            }
+        )
+        if success:
+            print(f"   Deep analysis response length: {len(response.get('response', ''))} chars")
+            print(f"   Message ID: {response.get('message_id', 'N/A')}")
+            print(f"   Response preview: {response.get('response', '')[:100]}...")
+        return success, response
+
+    def test_coach_memory_persistence(self):
+        """Test that coach remembers previous conversations"""
+        # First message
+        msg1 = "I had a great run yesterday"
+        success1, response1 = self.run_test(
+            "Coach Memory Test - Message 1", 
+            "POST", 
+            "coach/analyze", 
+            200,
+            data={"message": msg1, "language": "en", "user_id": "test_memory"}
+        )
+        
+        if not success1:
+            return False, {}
+        
+        # Second message that should reference the first
+        msg2 = "How does that compare to my other recent workouts?"
+        success2, response2 = self.run_test(
+            "Coach Memory Test - Message 2", 
+            "POST", 
+            "coach/analyze", 
+            200,
+            data={"message": msg2, "language": "en", "user_id": "test_memory"}
+        )
+        
+        if success2:
+            print(f"   Memory test response: {response2.get('response', '')[:150]}...")
+        
+        return success2, response2
+
 def main():
     print("🏃 CardioCoach API Testing Suite")
     print("=" * 50)
