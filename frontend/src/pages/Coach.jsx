@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Send, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { useLanguage } from "@/context/LanguageContext";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -15,9 +16,9 @@ export default function Coach() {
   const [loading, setLoading] = useState(false);
   const [workouts, setWorkouts] = useState([]);
   const scrollRef = useRef(null);
+  const { t, lang } = useLanguage();
 
   useEffect(() => {
-    // Fetch recent workouts for context
     const fetchWorkouts = async () => {
       try {
         const res = await axios.get(`${API}/workouts`);
@@ -30,7 +31,6 @@ export default function Coach() {
   }, []);
 
   useEffect(() => {
-    // Scroll to bottom on new messages
     if (scrollRef.current) {
       scrollRef.current.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
     }
@@ -66,7 +66,8 @@ export default function Coach() {
     try {
       const response = await axios.post(`${API}/coach/analyze`, {
         message: userMessage,
-        context: buildContext()
+        context: buildContext(),
+        language: lang // Send language preference to backend
       });
 
       setMessages(prev => [...prev, { 
@@ -75,10 +76,10 @@ export default function Coach() {
       }]);
     } catch (error) {
       console.error("Coach error:", error);
-      toast.error("Analysis failed. Check connection.");
+      toast.error(t("coach.error"));
       setMessages(prev => [...prev, { 
         role: "assistant", 
-        content: "Unable to process request." 
+        content: t("coach.unavailable")
       }]);
     } finally {
       setLoading(false);
@@ -92,15 +93,30 @@ export default function Coach() {
     }
   };
 
+  const handleSuggestion = (key) => {
+    const suggestions = {
+      trainingLoad: lang === "fr" 
+        ? "Analyse ma charge d'entrainement recente et la distribution de l'effort."
+        : "Analyze my recent training load and effort distribution.",
+      heartRate: lang === "fr"
+        ? "Quels patterns observes-tu dans mes donnees de frequence cardiaque?"
+        : "What patterns do you see in my heart rate data?",
+      paceConsistency: lang === "fr"
+        ? "Comment est ma regularite d'allure sur les courses recentes?"
+        : "How is my pace consistency across recent runs?"
+    };
+    setInput(suggestions[key]);
+  };
+
   return (
     <div className="flex flex-col h-[calc(100vh-60px)] md:h-screen" data-testid="coach-page">
       {/* Header */}
       <div className="p-6 md:p-8 border-b border-border">
         <h1 className="font-heading text-2xl md:text-3xl uppercase tracking-tight font-bold mb-1">
-          Coach
+          {t("coach.title")}
         </h1>
         <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
-          Performance Analysis
+          {t("coach.subtitle")}
         </p>
       </div>
 
@@ -110,20 +126,23 @@ export default function Coach() {
           <div className="h-full flex flex-col items-center justify-center text-center py-12">
             <div className="max-w-md">
               <p className="font-mono text-sm text-muted-foreground mb-4">
-                Ask about your training data. Zone distribution. Pace patterns. Recovery metrics.
+                {t("coach.emptyState")}
               </p>
               <div className="space-y-2">
                 <SuggestionButton 
-                  onClick={() => setInput("Analyze my recent training load and effort distribution.")}
-                  text="Analyze training load"
+                  onClick={() => handleSuggestion("trainingLoad")}
+                  text={t("coach.suggestions.trainingLoad")}
+                  testId="suggestion-training-load"
                 />
                 <SuggestionButton 
-                  onClick={() => setInput("What patterns do you see in my heart rate data?")}
-                  text="Heart rate patterns"
+                  onClick={() => handleSuggestion("heartRate")}
+                  text={t("coach.suggestions.heartRate")}
+                  testId="suggestion-heart-rate"
                 />
                 <SuggestionButton 
-                  onClick={() => setInput("How is my pace consistency across recent runs?")}
-                  text="Pace consistency"
+                  onClick={() => handleSuggestion("paceConsistency")}
+                  text={t("coach.suggestions.paceConsistency")}
+                  testId="suggestion-pace-consistency"
                 />
               </div>
             </div>
@@ -139,7 +158,7 @@ export default function Coach() {
                 {msg.role === "user" ? (
                   <div className="inline-block text-left max-w-[85%] md:max-w-[70%]">
                     <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-2">
-                      You
+                      {t("coach.you")}
                     </p>
                     <Card className="bg-muted border-border">
                       <CardContent className="p-4">
@@ -183,7 +202,7 @@ export default function Coach() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Ask about your training..."
+            placeholder={t("coach.placeholder")}
             className="flex-1 min-h-[44px] max-h-[120px] resize-none bg-muted border-transparent focus:border-primary rounded-none font-mono text-sm"
             disabled={loading}
           />
@@ -205,11 +224,11 @@ export default function Coach() {
   );
 }
 
-function SuggestionButton({ onClick, text }) {
+function SuggestionButton({ onClick, text, testId }) {
   return (
     <button
       onClick={onClick}
-      data-testid={`suggestion-${text.toLowerCase().replace(/\s+/g, "-")}`}
+      data-testid={testId}
       className="block w-full p-3 text-left font-mono text-xs uppercase tracking-wider text-muted-foreground border border-border hover:border-primary/30 hover:text-foreground transition-colors"
     >
       {text}
