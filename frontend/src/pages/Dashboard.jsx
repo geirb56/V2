@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import axios from "axios";
 import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useLanguage } from "@/context/LanguageContext";
 import { 
   Activity, 
   Timer, 
@@ -45,6 +46,7 @@ export default function Dashboard() {
   const [workouts, setWorkouts] = useState([]);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
+  const { t, lang } = useLanguage();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -64,6 +66,8 @@ export default function Dashboard() {
     fetchData();
   }, []);
 
+  const dateLocale = t("dateFormat.locale");
+
   if (loading) {
     return (
       <div className="p-6 md:p-8 animate-pulse">
@@ -82,13 +86,13 @@ export default function Dashboard() {
       {/* Header */}
       <div className="mb-8">
         <h1 className="font-heading text-2xl md:text-3xl uppercase tracking-tight font-bold mb-1">
-          Training Log
+          {t("dashboard.title")}
         </h1>
         <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
-          {new Date().toLocaleDateString("en-US", { 
-            weekday: "long", 
-            month: "short", 
-            day: "numeric" 
+          {new Date().toLocaleDateString(dateLocale, { 
+            weekday: t("dateFormat.weekday"), 
+            month: t("dateFormat.month"), 
+            day: t("dateFormat.day") 
           })}
         </p>
       </div>
@@ -98,7 +102,7 @@ export default function Dashboard() {
         <Card className="metric-card bg-card border-border animate-in">
           <CardContent className="p-4 md:p-6">
             <div className="flex items-start justify-between mb-3">
-              <span className="data-label">Total Workouts</span>
+              <span className="data-label">{t("dashboard.totalWorkouts")}</span>
               <Activity className="w-4 h-4 text-primary" />
             </div>
             <p className="font-heading text-3xl md:text-4xl font-bold">
@@ -110,39 +114,39 @@ export default function Dashboard() {
         <Card className="metric-card bg-card border-border animate-in">
           <CardContent className="p-4 md:p-6">
             <div className="flex items-start justify-between mb-3">
-              <span className="data-label">Distance</span>
+              <span className="data-label">{t("dashboard.distance")}</span>
               <TrendingUp className="w-4 h-4 text-chart-2" />
             </div>
             <p className="font-heading text-3xl md:text-4xl font-bold">
               {stats?.total_distance_km?.toFixed(0) || 0}
             </p>
-            <p className="font-mono text-xs text-muted-foreground mt-1">km</p>
+            <p className="font-mono text-xs text-muted-foreground mt-1">{t("dashboard.km")}</p>
           </CardContent>
         </Card>
 
         <Card className="metric-card bg-card border-border animate-in">
           <CardContent className="p-4 md:p-6">
             <div className="flex items-start justify-between mb-3">
-              <span className="data-label">Duration</span>
+              <span className="data-label">{t("dashboard.duration")}</span>
               <Timer className="w-4 h-4 text-chart-3" />
             </div>
             <p className="font-heading text-3xl md:text-4xl font-bold">
               {Math.round((stats?.total_duration_minutes || 0) / 60)}
             </p>
-            <p className="font-mono text-xs text-muted-foreground mt-1">hours</p>
+            <p className="font-mono text-xs text-muted-foreground mt-1">{t("dashboard.hours")}</p>
           </CardContent>
         </Card>
 
         <Card className="metric-card bg-card border-border animate-in">
           <CardContent className="p-4 md:p-6">
             <div className="flex items-start justify-between mb-3">
-              <span className="data-label">Avg HR</span>
+              <span className="data-label">{t("dashboard.avgHr")}</span>
               <Heart className="w-4 h-4 text-chart-4" />
             </div>
             <p className="font-heading text-3xl md:text-4xl font-bold">
               {stats?.avg_heart_rate?.toFixed(0) || "--"}
             </p>
-            <p className="font-mono text-xs text-muted-foreground mt-1">bpm</p>
+            <p className="font-mono text-xs text-muted-foreground mt-1">{t("dashboard.bpm")}</p>
           </CardContent>
         </Card>
       </div>
@@ -151,14 +155,14 @@ export default function Dashboard() {
       <div>
         <div className="flex items-center justify-between mb-4">
           <h2 className="font-heading text-lg uppercase tracking-tight font-semibold">
-            Recent Workouts
+            {t("dashboard.recentWorkouts")}
           </h2>
           <Link 
             to="/progress" 
             data-testid="view-all-workouts"
             className="font-mono text-xs uppercase tracking-wider text-primary hover:text-primary/80 flex items-center gap-1"
           >
-            View All <ChevronRight className="w-3 h-3" />
+            {t("dashboard.viewAll")} <ChevronRight className="w-3 h-3" />
           </Link>
         </div>
 
@@ -166,6 +170,7 @@ export default function Dashboard() {
           <div className="space-y-3">
             {workouts.slice(0, 5).map((workout, index) => {
               const Icon = getWorkoutIcon(workout.type);
+              const typeLabel = t(`workoutTypes.${workout.type}`) || workout.type;
               return (
                 <Link
                   key={workout.id}
@@ -186,10 +191,10 @@ export default function Dashboard() {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
                             <span className="workout-type-badge">
-                              {workout.type}
+                              {typeLabel}
                             </span>
                             <span className="font-mono text-[10px] text-muted-foreground">
-                              {new Date(workout.date).toLocaleDateString("en-US", {
+                              {new Date(workout.date).toLocaleDateString(dateLocale, {
                                 month: "short",
                                 day: "numeric"
                               })}
@@ -204,7 +209,7 @@ export default function Dashboard() {
                         <div className="flex items-center gap-6 text-right">
                           <div>
                             <p className="font-mono text-sm font-medium">
-                              {workout.distance_km.toFixed(1)} km
+                              {workout.distance_km.toFixed(1)} {t("dashboard.km")}
                             </p>
                             <p className="font-mono text-[10px] text-muted-foreground">
                               {formatDuration(workout.duration_minutes)}
@@ -212,7 +217,7 @@ export default function Dashboard() {
                           </div>
                           <div className="hidden md:block">
                             <p className="font-mono text-sm font-medium">
-                              {workout.avg_heart_rate || "--"} bpm
+                              {workout.avg_heart_rate || "--"} {t("dashboard.bpm")}
                             </p>
                             <p className="font-mono text-[10px] text-muted-foreground">
                               {workout.type === "run" 
