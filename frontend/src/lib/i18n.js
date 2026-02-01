@@ -66,6 +66,10 @@ export const translations = {
       },
       error: "Analysis failed. Check connection.",
       unavailable: "Unable to process request.",
+      analyzing: "Analyzing...",
+      thinking: "Thinking...",
+      workoutAnalyzed: "Workout analyzed",
+      historyClear: "History cleared",
     },
     
     // Progress
