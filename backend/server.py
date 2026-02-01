@@ -86,11 +86,23 @@ class CoachRequest(BaseModel):
     workout_id: Optional[str] = None
     context: Optional[str] = None  # Additional context like recent stats
     language: Optional[str] = "en"  # "en" or "fr"
+    deep_analysis: Optional[bool] = False  # Trigger deep workout analysis
+    user_id: Optional[str] = "default"  # For memory persistence
 
 
 class CoachResponse(BaseModel):
     response: str
     message_id: str
+
+
+class ConversationMessage(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str
+    role: str  # "user" or "assistant"
+    content: str
+    workout_id: Optional[str] = None
+    timestamp: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 
 class TrainingStats(BaseModel):
