@@ -190,31 +190,83 @@ Lors de l'analyse des donnees d'entrainement, concentre-toi sur:
 
 Reponses concises. Observations basees sur les donnees uniquement."""
 
-DEEP_ANALYSIS_PROMPT_EN = """Provide a deep technical analysis of this workout. Be specific, expert-level, and actionable.
+DEEP_ANALYSIS_PROMPT_EN = """Provide a deep technical analysis of this workout WITH CONTEXTUAL COMPARISON to the athlete's recent baseline.
+
+You have access to:
+- Current workout data
+- Baseline metrics from the last 7-14 days (averages and trends)
 
 Structure your analysis:
-1. EXECUTION ASSESSMENT - How well was this session executed? Look at pace/power consistency, heart rate drift, effort distribution quality.
 
-2. PHYSIOLOGICAL SIGNALS - What does the data reveal about current fitness state? Zone time, cardiac efficiency, fatigue markers.
+1. EXECUTION ASSESSMENT
+- How well was this session executed?
+- Compare to recent baseline: pace/power consistency, heart rate response
+- Express in relative terms: "slightly above your recent aerobic average", "in line with baseline", "notably higher than recent sessions"
 
-3. TECHNICAL OBSERVATIONS - Specific technical aspects: cadence patterns, power output variability, pacing strategy effectiveness.
+2. TREND DETECTION
+- Based on comparing this workout to baseline:
+  - IMPROVING: metrics trending positively (lower HR at same pace, faster times, better efficiency)
+  - MAINTAINING: stable performance, consistent with baseline
+  - OVERLOAD RISK: signs of accumulated fatigue (elevated HR, declining pace, poor recovery between efforts)
+- Be calm and precise. Not alarmist. State observations neutrally.
 
-4. ACTIONABLE INSIGHT - One concrete, specific recommendation for the next similar session. Not generic advice.
+3. PHYSIOLOGICAL CONTEXT
+- Zone distribution vs recent patterns
+- Cardiac efficiency relative to baseline
+- Any deviation from normal response patterns
 
-Be direct. No filler. If the data shows something notable, say it clearly."""
+4. ACTIONABLE INSIGHT
+- One specific recommendation based on where this workout sits relative to recent load
+- If load is high: suggest recovery focus
+- If maintaining: suggest progression opportunity
+- If improving: acknowledge and suggest next challenge
 
-DEEP_ANALYSIS_PROMPT_FR = """Fournis une analyse technique approfondie de cette seance. Sois specifique, expert et actionnable.
+Tone: Calm, precise, non-alarmist. Use phrases like:
+- "slightly elevated compared to your recent baseline"
+- "consistent with your 7-day average"
+- "this represents a modest increase in training load"
+- "your body is responding well to recent training"
+
+Never dramatize. Just observe and advise."""
+
+DEEP_ANALYSIS_PROMPT_FR = """Fournis une analyse technique approfondie de cette seance AVEC COMPARAISON CONTEXTUELLE a la baseline recente de l'athlete.
+
+Tu as acces a:
+- Les donnees de la seance actuelle
+- Les metriques de reference des 7-14 derniers jours (moyennes et tendances)
 
 Structure ton analyse:
-1. EVALUATION DE L'EXECUTION - Comment cette seance a-t-elle ete executee? Regarde la regularite de l'allure/puissance, la derive cardiaque, la qualite de la distribution de l'effort.
 
-2. SIGNAUX PHYSIOLOGIQUES - Que revelent les donnees sur l'etat de forme actuel? Temps par zone, efficacite cardiaque, marqueurs de fatigue.
+1. EVALUATION DE L'EXECUTION
+- Comment cette seance a-t-elle ete executee?
+- Compare a la baseline recente: regularite allure/puissance, reponse cardiaque
+- Exprime en termes relatifs: "legerement au-dessus de ta moyenne aerobie recente", "en ligne avec la baseline", "notablement plus eleve que les seances recentes"
 
-3. OBSERVATIONS TECHNIQUES - Aspects techniques specifiques: patterns de cadence, variabilite de la puissance, efficacite de la strategie d'allure.
+2. DETECTION DE TENDANCE
+- En comparant cette seance a la baseline:
+  - PROGRESSION: metriques en amelioration (FC plus basse a meme allure, temps plus rapides, meilleure efficacite)
+  - MAINTIEN: performance stable, coherente avec la baseline
+  - RISQUE DE SURCHARGE: signes de fatigue accumulee (FC elevee, allure en baisse, mauvaise recuperation entre efforts)
+- Sois calme et precis. Pas alarmiste. Enonce les observations de maniere neutre.
 
-4. RECOMMANDATION ACTIONNABLE - Une recommandation concrete et specifique pour la prochaine seance similaire. Pas de conseil generique.
+3. CONTEXTE PHYSIOLOGIQUE
+- Distribution des zones vs patterns recents
+- Efficacite cardiaque relative a la baseline
+- Toute deviation des patterns de reponse normaux
 
-Sois direct. Pas de remplissage. Si les donnees montrent quelque chose de notable, dis-le clairement."""
+4. RECOMMANDATION ACTIONNABLE
+- Une recommandation specifique basee sur la position de cette seance par rapport a la charge recente
+- Si charge elevee: suggere un focus recuperation
+- Si maintien: suggere une opportunite de progression
+- Si progression: reconnais et suggere le prochain defi
+
+Ton: Calme, precis, non-alarmiste. Utilise des phrases comme:
+- "legerement eleve par rapport a ta baseline recente"
+- "coherent avec ta moyenne sur 7 jours"
+- "cela represente une augmentation modeste de la charge"
+- "ton corps repond bien a l'entrainement recent"
+
+Ne dramatise jamais. Observe et conseille simplement."""
 
 def get_system_prompt(language: str) -> str:
     """Get the appropriate system prompt based on language"""
