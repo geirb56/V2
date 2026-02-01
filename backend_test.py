@@ -360,6 +360,12 @@ def main():
         if first_workout_id:
             print(f"\n⚠️  Testing Deep Analysis for workout {first_workout_id} (may take 10-30 seconds)...")
             tester.test_deep_analysis(first_workout_id)
+            
+            print(f"\n⚠️  Testing Baseline Comparison Analysis (may take 10-30 seconds)...")
+            tester.test_baseline_comparison_analysis(first_workout_id)
+            
+            print(f"\n⚠️  Testing Trend Detection Analysis (may take 10-30 seconds)...")
+            tester.test_trend_detection_analysis(first_workout_id)
     
     # Test memory persistence
     print("\n⚠️  Testing Coach Memory Persistence (may take 20-40 seconds)...")
