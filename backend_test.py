@@ -537,6 +537,17 @@ def main():
             
             print(f"\n⚠️  Testing Trend Detection Analysis (may take 10-30 seconds)...")
             tester.test_trend_detection_analysis(first_workout_id)
+            
+            # NEW: Test Hidden Insight Feature
+            print(f"\n🔍 Testing Hidden Insight Feature (may take 60-90 seconds)...")
+            tester.test_hidden_insight_probability(first_workout_id, num_tests=8)
+            
+            # Test hidden insight content quality
+            tester.test_hidden_insight_content_quality()
+            
+            # Test French hidden insight
+            print(f"\n🇫🇷 Testing French Hidden Insight (may take 10-30 seconds)...")
+            tester.test_hidden_insight_french(first_workout_id)
     
     # Test memory persistence
     print("\n⚠️  Testing Coach Memory Persistence (may take 20-40 seconds)...")
