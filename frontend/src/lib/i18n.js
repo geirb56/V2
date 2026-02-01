@@ -183,6 +183,10 @@ export const translations = {
       },
       error: "Analyse echouee. Verifiez la connexion.",
       unavailable: "Impossible de traiter la demande.",
+      analyzing: "Analyse en cours...",
+      thinking: "Reflexion...",
+      workoutAnalyzed: "Seance analysee",
+      historyClear: "Historique efface",
     },
     
     // Progress
