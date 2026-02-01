@@ -49,8 +49,10 @@ CardioCoach is an elite endurance coaching app specialized in running, cycling, 
   - `GET /api/workouts/{id}` - Workout detail
   - `POST /api/workouts` - Create workout
   - `GET /api/stats` - Training statistics
-  - `POST /api/coach/analyze` - AI analysis (with language param)
-  - `GET /api/messages` - Coach message history
+  - `POST /api/coach/analyze` - AI analysis (with language, deep_analysis, user_id params)
+  - `GET /api/coach/history` - Conversation history per user
+  - `DELETE /api/coach/history` - Clear conversation history
+  - `GET /api/messages` - Coach message history (legacy)
 
 ### Frontend Structure
 - `/app/frontend/src/lib/i18n.js` - Translation dictionaries
