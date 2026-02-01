@@ -3,6 +3,7 @@ import { useParams, Link } from "react-router-dom";
 import axios from "axios";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { useLanguage } from "@/context/LanguageContext";
 import { 
   ArrowLeft, 
   Timer, 
@@ -44,25 +45,20 @@ const formatPace = (paceMinKm) => {
 };
 
 const zoneColors = {
-  z1: "bg-chart-2",  // Green - Recovery
-  z2: "bg-chart-1",  // Blue - Aerobic
-  z3: "bg-chart-3",  // Yellow - Tempo
-  z4: "bg-chart-3",  // Orange - Threshold
-  z5: "bg-chart-4",  // Red - VO2Max
-};
-
-const zoneLabels = {
-  z1: "Z1 Recovery",
-  z2: "Z2 Aerobic",
-  z3: "Z3 Tempo",
-  z4: "Z4 Threshold",
-  z5: "Z5 VO2Max",
+  z1: "bg-chart-2",
+  z2: "bg-chart-1",
+  z3: "bg-chart-3",
+  z4: "bg-chart-3",
+  z5: "bg-chart-4",
 };
 
 export default function WorkoutDetail() {
   const { id } = useParams();
   const [workout, setWorkout] = useState(null);
   const [loading, setLoading] = useState(true);
+  const { t, lang } = useLanguage();
+
+  const dateLocale = t("dateFormat.locale");
 
   useEffect(() => {
     const fetchWorkout = async () => {
@@ -97,15 +93,16 @@ export default function WorkoutDetail() {
       <div className="p-6 md:p-8" data-testid="workout-not-found">
         <Link to="/" className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground mb-8">
           <ArrowLeft className="w-4 h-4" />
-          <span className="font-mono text-xs uppercase tracking-wider">Back</span>
+          <span className="font-mono text-xs uppercase tracking-wider">{t("workout.back")}</span>
         </Link>
-        <p className="text-muted-foreground">Workout not found.</p>
+        <p className="text-muted-foreground">{t("workout.notFound")}</p>
       </div>
     );
   }
 
   const Icon = getWorkoutIcon(workout.type);
   const zones = workout.effort_zone_distribution || {};
+  const typeLabel = t(`workoutTypes.${workout.type}`) || workout.type;
 
   return (
     <div className="p-6 md:p-8 pb-24 md:pb-8" data-testid="workout-detail">
@@ -116,7 +113,7 @@ export default function WorkoutDetail() {
         className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground mb-8 transition-colors"
       >
         <ArrowLeft className="w-4 h-4" />
-        <span className="font-mono text-xs uppercase tracking-wider">Back</span>
+        <span className="font-mono text-xs uppercase tracking-wider">{t("workout.back")}</span>
       </Link>
 
       {/* Header */}
@@ -126,13 +123,13 @@ export default function WorkoutDetail() {
         </div>
         <div>
           <div className="flex items-center gap-3 mb-2">
-            <span className="workout-type-badge">{workout.type}</span>
+            <span className="workout-type-badge">{typeLabel}</span>
             <span className="font-mono text-xs text-muted-foreground">
-              {new Date(workout.date).toLocaleDateString("en-US", {
-                weekday: "long",
-                month: "long",
-                day: "numeric",
-                year: "numeric"
+              {new Date(workout.date).toLocaleDateString(dateLocale, {
+                weekday: t("dateFormat.weekday"),
+                month: t("dateFormat.month"),
+                day: t("dateFormat.day"),
+                year: t("dateFormat.year")
               })}
             </span>
           </div>
@@ -145,27 +142,27 @@ export default function WorkoutDetail() {
       {/* Primary Metrics */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8 stagger-children">
         <MetricCard
-          label="Distance"
+          label={t("dashboard.distance")}
           value={workout.distance_km.toFixed(1)}
-          unit="km"
+          unit={t("dashboard.km")}
           icon={TrendingUp}
           color="text-chart-2"
         />
         <MetricCard
-          label="Duration"
+          label={t("dashboard.duration")}
           value={formatDuration(workout.duration_minutes)}
           icon={Timer}
           color="text-chart-3"
         />
         <MetricCard
-          label="Avg Heart Rate"
+          label={t("workout.avgHeartRate")}
           value={workout.avg_heart_rate || "--"}
-          unit="bpm"
+          unit={t("dashboard.bpm")}
           icon={Heart}
           color="text-chart-4"
         />
         <MetricCard
-          label={workout.type === "run" ? "Avg Pace" : "Avg Speed"}
+          label={workout.type === "run" ? t("workout.avgPace") : t("workout.avgSpeed")}
           value={workout.type === "run" 
             ? formatPace(workout.avg_pace_min_km)
             : `${workout.avg_speed_kmh?.toFixed(1) || "--"}`
@@ -179,15 +176,15 @@ export default function WorkoutDetail() {
       {/* Secondary Metrics */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         <MetricCard
-          label="Max Heart Rate"
+          label={t("workout.maxHeartRate")}
           value={workout.max_heart_rate || "--"}
-          unit="bpm"
+          unit={t("dashboard.bpm")}
           icon={Heart}
           color="text-chart-4"
           small
         />
         <MetricCard
-          label="Elevation"
+          label={t("workout.elevation")}
           value={workout.elevation_gain_m || "--"}
           unit="m"
           icon={Mountain}
@@ -195,21 +192,21 @@ export default function WorkoutDetail() {
           small
         />
         <MetricCard
-          label="Calories"
+          label={t("workout.calories")}
           value={workout.calories || "--"}
           unit="kcal"
           icon={Flame}
           color="text-chart-3"
           small
         />
-        <div /> {/* Empty cell for grid alignment */}
+        <div />
       </div>
 
       {/* Zone Distribution */}
       {Object.keys(zones).length > 0 && (
         <div className="mb-8">
           <h2 className="font-heading text-lg uppercase tracking-tight font-semibold mb-4">
-            Effort Distribution
+            {t("workout.effortDistribution")}
           </h2>
           <Card className="bg-card border-border">
             <CardContent className="p-6">
@@ -218,7 +215,7 @@ export default function WorkoutDetail() {
                   <div key={zone} data-testid={`zone-${zone}`}>
                     <div className="flex items-center justify-between mb-2">
                       <span className="font-mono text-xs uppercase tracking-wider text-muted-foreground">
-                        {zoneLabels[zone] || zone}
+                        {t(`workout.zones.${zone}`) || zone}
                       </span>
                       <span className="font-mono text-sm font-medium">
                         {percentage}%
@@ -242,7 +239,7 @@ export default function WorkoutDetail() {
       {workout.notes && (
         <div className="mb-8">
           <h2 className="font-heading text-lg uppercase tracking-tight font-semibold mb-4">
-            Notes
+            {t("workout.notes")}
           </h2>
           <Card className="bg-card border-border">
             <CardContent className="p-6">
@@ -255,7 +252,7 @@ export default function WorkoutDetail() {
       {/* Analyze Button */}
       <Link to="/coach" data-testid="analyze-with-coach">
         <Button className="bg-primary text-white hover:bg-primary/90 rounded-none uppercase font-bold tracking-wider text-xs h-11 px-8">
-          Analyze with Coach
+          {t("workout.analyzeWithCoach")}
         </Button>
       </Link>
     </div>
