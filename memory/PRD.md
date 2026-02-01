@@ -33,6 +33,16 @@ CardioCoach is an elite endurance coaching app specialized in running, cycling, 
 - Language preference persisted in localStorage
 - No screen duplication - single logic layer
 
+### Phase 3 - Persistent Memory & Deep Analysis (Feb 1, 2026)
+- Persistent AI coach memory per user (MongoDB 'conversations' collection)
+- Coach remembers past workouts and prior advice
+- Memory used subtly (no "as I said before")
+- "Analyze" button on each workout detail page
+- Auto-triggered deep technical analysis with structured output
+- Expert-level, actionable insights (not generic)
+- Clear history functionality
+- Structured analysis format: Execution Assessment, Physiological Signals, Technical Observations, Actionable Insight
+
 ### Backend
 - API Endpoints:
   - `GET /api/workouts` - List all workouts
