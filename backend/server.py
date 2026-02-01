@@ -85,6 +85,7 @@ class CoachRequest(BaseModel):
     message: str
     workout_id: Optional[str] = None
     context: Optional[str] = None  # Additional context like recent stats
+    language: Optional[str] = "en"  # "en" or "fr"
 
 
 class CoachResponse(BaseModel):
