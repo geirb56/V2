@@ -413,10 +413,13 @@ async def analyze_with_coach(request: CoachRequest):
         # Create session ID for this conversation
         session_id = str(uuid.uuid4())
         
+        # Get the appropriate system prompt based on language
+        system_prompt = get_system_prompt(request.language or "en")
+        
         chat = LlmChat(
             api_key=EMERGENT_LLM_KEY,
             session_id=session_id,
-            system_message=CARDIOCOACH_SYSTEM
+            system_message=system_prompt
         ).with_model("openai", "gpt-5.2")
         
         user_message = UserMessage(text=full_message)
@@ -429,6 +432,7 @@ async def analyze_with_coach(request: CoachRequest):
             "user_message": request.message,
             "assistant_response": response,
             "workout_id": request.workout_id,
+            "language": request.language or "en",
             "timestamp": datetime.now(timezone.utc).isoformat()
         })
         
