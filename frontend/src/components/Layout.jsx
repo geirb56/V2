@@ -1,14 +1,17 @@
 import { Outlet, NavLink, useLocation } from "react-router-dom";
-import { Activity, MessageSquare, BarChart3, Home } from "lucide-react";
-
-const navItems = [
-  { path: "/", icon: Home, label: "Dashboard" },
-  { path: "/coach", icon: MessageSquare, label: "Coach" },
-  { path: "/progress", icon: BarChart3, label: "Progress" },
-];
+import { Activity, MessageSquare, BarChart3, Home, Settings } from "lucide-react";
+import { useLanguage } from "@/context/LanguageContext";
 
 export const Layout = () => {
   const location = useLocation();
+  const { t } = useLanguage();
+
+  const navItems = [
+    { path: "/", icon: Home, labelKey: "nav.dashboard" },
+    { path: "/coach", icon: MessageSquare, labelKey: "nav.coach" },
+    { path: "/progress", icon: BarChart3, labelKey: "nav.progress" },
+    { path: "/settings", icon: Settings, labelKey: "nav.settings" },
+  ];
 
   return (
     <div className="min-h-screen flex flex-col md:flex-row">
@@ -28,7 +31,7 @@ export const Layout = () => {
             <NavLink
               key={item.path}
               to={item.path}
-              data-testid={`nav-${item.label.toLowerCase()}`}
+              data-testid={`nav-${item.labelKey.split(".")[1]}`}
               className={({ isActive }) =>
                 `flex items-center gap-3 px-4 py-3 text-sm font-mono uppercase tracking-wider transition-colors ${
                   isActive
@@ -38,14 +41,14 @@ export const Layout = () => {
               }
             >
               <item.icon className="w-4 h-4" />
-              {item.label}
+              {t(item.labelKey)}
             </NavLink>
           ))}
         </nav>
 
         <div className="pt-6 border-t border-border mt-auto">
           <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-            Elite Endurance Analysis
+            {t("nav.tagline")}
           </p>
         </div>
       </aside>
@@ -73,14 +76,14 @@ export const Layout = () => {
             <NavLink
               key={item.path}
               to={item.path}
-              data-testid={`mobile-nav-${item.label.toLowerCase()}`}
+              data-testid={`mobile-nav-${item.labelKey.split(".")[1]}`}
               className={`flex flex-col items-center gap-1 p-2 ${
                 isActive ? "text-primary" : "text-muted-foreground"
               }`}
             >
               <item.icon className="w-5 h-5" />
               <span className="font-mono text-[9px] uppercase tracking-wider">
-                {item.label}
+                {t(item.labelKey)}
               </span>
             </NavLink>
           );
