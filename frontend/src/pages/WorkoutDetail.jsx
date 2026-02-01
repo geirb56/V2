@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,7 +13,8 @@ import {
   Flame,
   Bike,
   Footprints,
-  Activity
+  Activity,
+  MessageSquare
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -57,6 +58,7 @@ export default function WorkoutDetail() {
   const [workout, setWorkout] = useState(null);
   const [loading, setLoading] = useState(true);
   const { t, lang } = useLanguage();
+  const navigate = useNavigate();
 
   const dateLocale = t("dateFormat.locale");
 
@@ -73,6 +75,10 @@ export default function WorkoutDetail() {
     };
     fetchWorkout();
   }, [id]);
+
+  const handleAnalyzeWorkout = () => {
+    navigate(`/coach?analyze=${id}`);
+  };
 
   if (loading) {
     return (
@@ -117,26 +123,38 @@ export default function WorkoutDetail() {
       </Link>
 
       {/* Header */}
-      <div className="flex items-start gap-4 mb-8">
-        <div className="w-12 h-12 flex items-center justify-center bg-muted border border-border">
-          <Icon className="w-6 h-6 text-muted-foreground" />
-        </div>
-        <div>
-          <div className="flex items-center gap-3 mb-2">
-            <span className="workout-type-badge">{typeLabel}</span>
-            <span className="font-mono text-xs text-muted-foreground">
-              {new Date(workout.date).toLocaleDateString(dateLocale, {
-                weekday: t("dateFormat.weekday"),
-                month: t("dateFormat.month"),
-                day: t("dateFormat.day"),
-                year: t("dateFormat.year")
-              })}
-            </span>
+      <div className="flex items-start justify-between gap-4 mb-8">
+        <div className="flex items-start gap-4">
+          <div className="w-12 h-12 flex items-center justify-center bg-muted border border-border">
+            <Icon className="w-6 h-6 text-muted-foreground" />
           </div>
-          <h1 className="font-heading text-2xl md:text-3xl uppercase tracking-tight font-bold">
-            {workout.name}
-          </h1>
+          <div>
+            <div className="flex items-center gap-3 mb-2">
+              <span className="workout-type-badge">{typeLabel}</span>
+              <span className="font-mono text-xs text-muted-foreground">
+                {new Date(workout.date).toLocaleDateString(dateLocale, {
+                  weekday: t("dateFormat.weekday"),
+                  month: t("dateFormat.month"),
+                  day: t("dateFormat.day"),
+                  year: t("dateFormat.year")
+                })}
+              </span>
+            </div>
+            <h1 className="font-heading text-2xl md:text-3xl uppercase tracking-tight font-bold">
+              {workout.name}
+            </h1>
+          </div>
         </div>
+
+        {/* Analyze Button - Prominent */}
+        <Button
+          onClick={handleAnalyzeWorkout}
+          data-testid="analyze-workout-btn"
+          className="bg-primary text-white hover:bg-primary/90 rounded-none uppercase font-bold tracking-wider text-xs h-11 px-6 flex items-center gap-2 glow-subtle"
+        >
+          <MessageSquare className="w-4 h-4" />
+          {lang === "fr" ? "Analyser" : "Analyze"}
+        </Button>
       </div>
 
       {/* Primary Metrics */}
@@ -249,12 +267,17 @@ export default function WorkoutDetail() {
         </div>
       )}
 
-      {/* Analyze Button */}
-      <Link to="/coach" data-testid="analyze-with-coach">
-        <Button className="bg-primary text-white hover:bg-primary/90 rounded-none uppercase font-bold tracking-wider text-xs h-11 px-8">
-          {t("workout.analyzeWithCoach")}
+      {/* Bottom Analyze CTA */}
+      <div className="flex items-center gap-4">
+        <Button
+          onClick={handleAnalyzeWorkout}
+          data-testid="analyze-workout-bottom-btn"
+          className="bg-primary text-white hover:bg-primary/90 rounded-none uppercase font-bold tracking-wider text-xs h-11 px-8 flex items-center gap-2"
+        >
+          <MessageSquare className="w-4 h-4" />
+          {lang === "fr" ? "Analyse approfondie avec Coach" : "Deep analysis with Coach"}
         </Button>
-      </Link>
+      </div>
     </div>
   );
 }
