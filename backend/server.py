@@ -1244,6 +1244,158 @@ async def get_latest_guidance(user_id: str = "default"):
     return guidance
 
 
+# ========== GARMIN INTEGRATION ENDPOINTS ==========
+
+@api_router.get("/garmin/status")
+async def get_garmin_status(user_id: str = "default"):
+    """Get Garmin connection status for a user"""
+    # Check if user has Garmin token
+    token = await db.garmin_tokens.find_one({"user_id": user_id}, {"_id": 0})
+    
+    if not token:
+        return GarminConnectionStatus(connected=False, last_sync=None, workout_count=0)
+    
+    # Get last sync time and workout count
+    sync_info = await db.sync_history.find_one(
+        {"user_id": user_id},
+        {"_id": 0},
+        sort=[("synced_at", -1)]
+    )
+    
+    workout_count = await db.workouts.count_documents({
+        "data_source": "garmin"
+    })
+    
+    return GarminConnectionStatus(
+        connected=True,
+        last_sync=sync_info.get("synced_at") if sync_info else None,
+        workout_count=workout_count
+    )
+
+
+@api_router.get("/garmin/authorize")
+async def garmin_authorize():
+    """Initiate Garmin OAuth flow"""
+    if not GARMIN_CLIENT_ID or not GARMIN_CLIENT_SECRET:
+        raise HTTPException(
+            status_code=503, 
+            detail="Garmin integration not configured. Please add GARMIN_CLIENT_ID and GARMIN_CLIENT_SECRET to environment."
+        )
+    
+    state = secrets.token_urlsafe(32)
+    code_verifier, code_challenge = generate_pkce_pair()
+    
+    # Store PKCE pair temporarily
+    pkce_store[state] = code_verifier
+    
+    auth_url = get_garmin_auth_url(code_challenge, state)
+    return {"authorization_url": auth_url, "state": state}
+
+
+@api_router.get("/garmin/callback")
+async def garmin_callback(code: str, state: str):
+    """Handle Garmin OAuth callback"""
+    if state not in pkce_store:
+        raise HTTPException(status_code=400, detail="Invalid state parameter")
+    
+    code_verifier = pkce_store.pop(state)
+    
+    try:
+        # Exchange code for tokens
+        token_data = await exchange_garmin_code(code, code_verifier)
+        access_token = token_data.get("access_token")
+        refresh_token = token_data.get("refresh_token")
+        expires_in = token_data.get("expires_in", 3600)
+        
+        user_id = "default"  # In production, get from session
+        
+        # Store token
+        await db.garmin_tokens.update_one(
+            {"user_id": user_id},
+            {"$set": {
+                "user_id": user_id,
+                "access_token": access_token,
+                "refresh_token": refresh_token,
+                "expires_at": datetime.now(timezone.utc) + timedelta(seconds=expires_in),
+                "created_at": datetime.now(timezone.utc).isoformat()
+            }},
+            upsert=True
+        )
+        
+        logger.info(f"Garmin connected for user: {user_id}")
+        
+        # Redirect back to frontend settings
+        return RedirectResponse(url=f"{FRONTEND_URL}/settings?garmin=connected")
+    
+    except Exception as e:
+        logger.error(f"Garmin OAuth error: {e}")
+        return RedirectResponse(url=f"{FRONTEND_URL}/settings?garmin=error")
+
+
+@api_router.post("/garmin/sync", response_model=GarminSyncResult)
+async def sync_garmin_activities(user_id: str = "default"):
+    """Sync activities from Garmin Connect"""
+    # Get token
+    token = await db.garmin_tokens.find_one({"user_id": user_id}, {"_id": 0})
+    
+    if not token:
+        return GarminSyncResult(success=False, synced_count=0, message="Not connected to Garmin")
+    
+    access_token = token.get("access_token")
+    
+    # Check if token is expired
+    expires_at = token.get("expires_at")
+    if expires_at:
+        if isinstance(expires_at, str):
+            expires_at = datetime.fromisoformat(expires_at.replace("Z", "+00:00"))
+        if expires_at < datetime.now(timezone.utc):
+            return GarminSyncResult(success=False, synced_count=0, message="Token expired. Please reconnect.")
+    
+    try:
+        # Fetch activities from Garmin
+        activities = await fetch_garmin_activities(access_token)
+        
+        synced_count = 0
+        for garmin_activity in activities:
+            workout = convert_garmin_to_workout(garmin_activity)
+            
+            if workout:
+                # Check if already exists
+                existing = await db.workouts.find_one({"id": workout["id"]})
+                if not existing:
+                    await db.workouts.insert_one(workout)
+                    synced_count += 1
+        
+        # Record sync history
+        await db.sync_history.insert_one({
+            "user_id": user_id,
+            "synced_at": datetime.now(timezone.utc).isoformat(),
+            "synced_count": synced_count,
+            "source": "garmin"
+        })
+        
+        logger.info(f"Garmin sync complete: {synced_count} workouts for user {user_id}")
+        
+        return GarminSyncResult(success=True, synced_count=synced_count, message=f"Synced {synced_count} workouts")
+    
+    except httpx.HTTPStatusError as e:
+        logger.error(f"Garmin API error: {e}")
+        if e.response.status_code == 401:
+            return GarminSyncResult(success=False, synced_count=0, message="Token expired. Please reconnect.")
+        return GarminSyncResult(success=False, synced_count=0, message="Failed to fetch activities")
+    except Exception as e:
+        logger.error(f"Garmin sync error: {e}")
+        return GarminSyncResult(success=False, synced_count=0, message="Sync failed")
+
+
+@api_router.delete("/garmin/disconnect")
+async def disconnect_garmin(user_id: str = "default"):
+    """Disconnect Garmin account"""
+    await db.garmin_tokens.delete_one({"user_id": user_id})
+    logger.info(f"Garmin disconnected for user: {user_id}")
+    return {"success": True, "message": "Garmin disconnected"}
+
+
 # Include the router
 app.include_router(api_router)
 
