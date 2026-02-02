@@ -3,6 +3,7 @@ export const translations = {
     // Navigation
     nav: {
       dashboard: "Dashboard",
+      guidance: "Guidance",
       coach: "Coach",
       progress: "Progress",
       settings: "Settings",
