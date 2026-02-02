@@ -134,6 +134,7 @@ export const translations = {
     // Navigation
     nav: {
       dashboard: "Tableau de bord",
+      guidance: "Recommandations",
       coach: "Coach",
       progress: "Progression",
       settings: "Parametres",
