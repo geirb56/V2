@@ -894,6 +894,170 @@ async def get_messages(limit: int = 20):
     return messages
 
 
+@api_router.post("/coach/guidance", response_model=GuidanceResponse)
+async def get_adaptive_guidance(request: GuidanceRequest):
+    """Generate adaptive training guidance based on recent workouts"""
+    if not EMERGENT_LLM_KEY:
+        raise HTTPException(status_code=500, detail="LLM key not configured")
+    
+    language = request.language or "en"
+    user_id = request.user_id or "default"
+    
+    # Get recent workouts (last 14 days)
+    all_workouts = await db.workouts.find({}, {"_id": 0}).sort("date", -1).to_list(100)
+    if not all_workouts:
+        all_workouts = get_mock_workouts()
+    
+    # Calculate training summary
+    from datetime import timedelta
+    today = datetime.now(timezone.utc).date()
+    cutoff_14d = today - timedelta(days=14)
+    cutoff_7d = today - timedelta(days=7)
+    
+    recent_14d = []
+    recent_7d = []
+    
+    for w in all_workouts:
+        try:
+            w_date = datetime.fromisoformat(w["date"].replace("Z", "+00:00").split("T")[0]).date()
+            if w_date >= cutoff_14d:
+                recent_14d.append(w)
+            if w_date >= cutoff_7d:
+                recent_7d.append(w)
+        except (ValueError, TypeError, KeyError):
+            continue
+    
+    # Build training summary
+    def summarize_workouts(workouts):
+        if not workouts:
+            return {"count": 0, "total_km": 0, "total_min": 0, "by_type": {}}
+        
+        total_km = sum(w.get("distance_km", 0) for w in workouts)
+        total_min = sum(w.get("duration_minutes", 0) for w in workouts)
+        by_type = {}
+        for w in workouts:
+            t = w.get("type", "other")
+            if t not in by_type:
+                by_type[t] = {"count": 0, "km": 0, "min": 0}
+            by_type[t]["count"] += 1
+            by_type[t]["km"] += w.get("distance_km", 0)
+            by_type[t]["min"] += w.get("duration_minutes", 0)
+        
+        return {
+            "count": len(workouts),
+            "total_km": round(total_km, 1),
+            "total_min": total_min,
+            "by_type": by_type
+        }
+    
+    summary_14d = summarize_workouts(recent_14d)
+    summary_7d = summarize_workouts(recent_7d)
+    
+    # Calculate intensity distribution from zone data
+    zone_totals = {"z1": 0, "z2": 0, "z3": 0, "z4": 0, "z5": 0}
+    zone_count = 0
+    for w in recent_14d:
+        zones = w.get("effort_zone_distribution", {})
+        if zones:
+            for z, pct in zones.items():
+                if z in zone_totals:
+                    zone_totals[z] += pct
+            zone_count += 1
+    
+    if zone_count > 0:
+        avg_zones = {z: round(v / zone_count, 1) for z, v in zone_totals.items()}
+    else:
+        avg_zones = None
+    
+    # Build context for guidance
+    context = f"""TRAINING DATA (Last 14 days):
+- Sessions: {summary_14d['count']}
+- Total distance: {summary_14d['total_km']} km
+- Total time: {summary_14d['total_min']} minutes
+- By type: {summary_14d['by_type']}
+
+LAST 7 DAYS:
+- Sessions: {summary_7d['count']}
+- Total distance: {summary_7d['total_km']} km
+- Total time: {summary_7d['total_min']} minutes
+
+RECENT WORKOUTS (most recent first):
+"""
+    
+    for w in recent_14d[:7]:
+        context += f"- {w.get('date', 'N/A')}: {w.get('type', 'N/A')} - {w.get('name', 'N/A')}, {w.get('distance_km', 0)}km, {w.get('duration_minutes', 0)}min, HR {w.get('avg_heart_rate', 'N/A')}\n"
+    
+    if avg_zones:
+        context += f"\nAVERAGE ZONE DISTRIBUTION (14d): {avg_zones}"
+    
+    # Get guidance prompt
+    guidance_prompt = ADAPTIVE_GUIDANCE_PROMPT_FR if language == "fr" else ADAPTIVE_GUIDANCE_PROMPT_EN
+    full_message = f"{guidance_prompt}\n\n{context}"
+    
+    try:
+        session_id = f"guidance_{user_id}"
+        system_prompt = get_system_prompt(language)
+        
+        chat = LlmChat(
+            api_key=EMERGENT_LLM_KEY,
+            session_id=session_id,
+            system_message=system_prompt
+        ).with_model("openai", "gpt-5.2")
+        
+        user_message = UserMessage(text=full_message)
+        response = await chat.send_message(user_message)
+        
+        # Determine status from response
+        response_upper = response.upper()
+        if "MAINTAIN" in response_upper or "MAINTENIR" in response_upper:
+            status = "maintain"
+        elif "ADJUST" in response_upper or "AJUSTER" in response_upper:
+            status = "adjust"
+        elif "HOLD" in response_upper or "CONSOLIDER" in response_upper:
+            status = "hold_steady"
+        else:
+            status = "maintain"  # Default
+        
+        # Store guidance in DB
+        await db.guidance.insert_one({
+            "id": str(uuid.uuid4()),
+            "user_id": user_id,
+            "status": status,
+            "guidance": response,
+            "language": language,
+            "training_summary": {
+                "last_14d": summary_14d,
+                "last_7d": summary_7d
+            },
+            "generated_at": datetime.now(timezone.utc).isoformat()
+        })
+        
+        logger.info(f"Guidance generated: status={status}, user={user_id}")
+        
+        return GuidanceResponse(
+            status=status,
+            guidance=response,
+            generated_at=datetime.now(timezone.utc).isoformat()
+        )
+    
+    except Exception as e:
+        logger.error(f"Guidance generation error: {e}")
+        raise HTTPException(status_code=500, detail=f"Guidance generation failed: {str(e)}")
+
+
+@api_router.get("/coach/guidance/latest")
+async def get_latest_guidance(user_id: str = "default"):
+    """Get the most recent guidance for a user"""
+    guidance = await db.guidance.find_one(
+        {"user_id": user_id},
+        {"_id": 0},
+        sort=[("generated_at", -1)]
+    )
+    if not guidance:
+        return None
+    return guidance
+
+
 # Include the router
 app.include_router(api_router)
 
