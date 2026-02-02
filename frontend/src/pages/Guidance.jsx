@@ -1,0 +1,316 @@
+import { useState, useEffect } from "react";
+import axios from "axios";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { useLanguage } from "@/context/LanguageContext";
+import { 
+  RefreshCw, 
+  Loader2,
+  CheckCircle,
+  Settings2,
+  Pause,
+  Footprints,
+  Bike,
+  Heart
+} from "lucide-react";
+import { toast } from "sonner";
+
+const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+const USER_ID = "default";
+
+const statusConfig = {
+  maintain: {
+    icon: CheckCircle,
+    color: "text-chart-2",
+    bgColor: "bg-chart-2/10",
+    borderColor: "border-chart-2/30",
+  },
+  adjust: {
+    icon: Settings2,
+    color: "text-chart-3",
+    bgColor: "bg-chart-3/10",
+    borderColor: "border-chart-3/30",
+  },
+  hold_steady: {
+    icon: Pause,
+    color: "text-chart-1",
+    bgColor: "bg-chart-1/10",
+    borderColor: "border-chart-1/30",
+  },
+};
+
+const getSessionIcon = (type) => {
+  if (!type) return Footprints;
+  const t = type.toLowerCase();
+  if (t.includes("cycle") || t.includes("bike") || t.includes("velo")) return Bike;
+  if (t.includes("recovery") || t.includes("recuperation")) return Heart;
+  return Footprints;
+};
+
+export default function Guidance() {
+  const [guidance, setGuidance] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [generating, setGenerating] = useState(false);
+  const { t, lang } = useLanguage();
+
+  useEffect(() => {
+    loadLatestGuidance();
+  }, []);
+
+  const loadLatestGuidance = async () => {
+    try {
+      const res = await axios.get(`${API}/coach/guidance/latest?user_id=${USER_ID}`);
+      setGuidance(res.data);
+    } catch (error) {
+      console.error("Failed to load guidance:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const generateGuidance = async () => {
+    setGenerating(true);
+    try {
+      const res = await axios.post(`${API}/coach/guidance`, {
+        language: lang,
+        user_id: USER_ID
+      });
+      setGuidance(res.data);
+      toast.success(lang === "fr" ? "Recommandations generees" : "Guidance generated");
+    } catch (error) {
+      console.error("Failed to generate guidance:", error);
+      toast.error(lang === "fr" ? "Erreur de generation" : "Generation failed");
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const parseGuidance = (text) => {
+    if (!text) return { status: null, sessions: [], note: null };
+    
+    const lines = text.split("\n");
+    const sessions = [];
+    let currentSession = null;
+    let note = null;
+    let statusSection = "";
+    
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+      
+      // Detect session headers
+      if (line.match(/^(SESSION|SEANCE)\s*\d/i)) {
+        if (currentSession) sessions.push(currentSession);
+        currentSession = { title: line, details: [] };
+      } else if (currentSession && line.startsWith("-")) {
+        currentSession.details.push(line.substring(1).trim());
+      } else if (line.match(/^(GUIDANCE NOTE|NOTE DE GUIDANCE)/i)) {
+        if (currentSession) {
+          sessions.push(currentSession);
+          currentSession = null;
+        }
+        // Collect note lines
+        const noteLines = [];
+        for (let j = i + 1; j < lines.length; j++) {
+          if (lines[j].trim() && !lines[j].match(/^\d\./)) {
+            noteLines.push(lines[j].trim());
+          } else if (lines[j].match(/^\d\./)) {
+            break;
+          }
+        }
+        note = noteLines.join(" ");
+      } else if (line.match(/^(CURRENT STATUS|STATUT ACTUEL)/i)) {
+        // Collect status section
+        const statusLines = [];
+        for (let j = i + 1; j < lines.length; j++) {
+          if (lines[j].match(/^\d\.\s*(SUGGESTED|SEANCE)/i)) break;
+          if (lines[j].trim()) statusLines.push(lines[j].trim());
+        }
+        statusSection = statusLines.join(" ");
+      }
+    }
+    
+    if (currentSession) sessions.push(currentSession);
+    
+    return { statusSection, sessions, note };
+  };
+
+  const formatTimeAgo = (isoString) => {
+    if (!isoString) return "";
+    const date = new Date(isoString);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMins / 60);
+    const diffDays = Math.floor(diffHours / 24);
+    
+    if (lang === "fr") {
+      if (diffMins < 60) return `il y a ${diffMins} min`;
+      if (diffHours < 24) return `il y a ${diffHours}h`;
+      return `il y a ${diffDays}j`;
+    }
+    
+    if (diffMins < 60) return `${diffMins} min ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    return `${diffDays}d ago`;
+  };
+
+  if (loading) {
+    return (
+      <div className="p-6 md:p-8" data-testid="guidance-page">
+        <div className="h-8 w-48 bg-muted rounded animate-pulse mb-8" />
+        <div className="h-64 bg-muted rounded animate-pulse" />
+      </div>
+    );
+  }
+
+  const statusInfo = guidance?.status ? statusConfig[guidance.status] : statusConfig.maintain;
+  const StatusIcon = statusInfo.icon;
+  const parsed = parseGuidance(guidance?.guidance);
+
+  return (
+    <div className="p-6 md:p-8 pb-24 md:pb-8" data-testid="guidance-page">
+      {/* Header */}
+      <div className="flex items-start justify-between mb-8">
+        <div>
+          <h1 className="font-heading text-2xl md:text-3xl uppercase tracking-tight font-bold mb-1">
+            {t("guidance.title")}
+          </h1>
+          <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
+            {t("guidance.subtitle")}
+          </p>
+        </div>
+        <Button
+          onClick={generateGuidance}
+          disabled={generating}
+          data-testid="generate-guidance"
+          className="bg-primary text-white hover:bg-primary/90 rounded-none uppercase font-bold tracking-wider text-xs h-10 px-4 flex items-center gap-2"
+        >
+          {generating ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <RefreshCw className="w-4 h-4" />
+          )}
+          {lang === "fr" ? "Actualiser" : "Refresh"}
+        </Button>
+      </div>
+
+      {!guidance ? (
+        <Card className="bg-card border-border">
+          <CardContent className="p-8 text-center">
+            <p className="font-mono text-sm text-muted-foreground mb-4">
+              {lang === "fr" 
+                ? "Aucune recommandation generee. Cliquez sur Actualiser pour obtenir vos suggestions d'entrainement."
+                : "No guidance generated yet. Click Refresh to get your training suggestions."
+              }
+            </p>
+            <Button
+              onClick={generateGuidance}
+              disabled={generating}
+              className="bg-primary text-white hover:bg-primary/90 rounded-none uppercase font-bold tracking-wider text-xs h-10 px-6"
+            >
+              {generating ? (
+                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+              ) : null}
+              {lang === "fr" ? "Generer les recommandations" : "Generate Guidance"}
+            </Button>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-6">
+          {/* Status Card */}
+          <Card className={`bg-card border ${statusInfo.borderColor}`}>
+            <CardContent className="p-6">
+              <div className="flex items-center gap-4">
+                <div className={`w-12 h-12 flex items-center justify-center ${statusInfo.bgColor} border ${statusInfo.borderColor}`}>
+                  <StatusIcon className={`w-6 h-6 ${statusInfo.color}`} />
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-3 mb-1">
+                    <span className="font-heading text-lg uppercase tracking-tight font-semibold">
+                      {t(`guidance.status.${guidance.status}`)}
+                    </span>
+                    <span className="font-mono text-[10px] text-muted-foreground">
+                      {formatTimeAgo(guidance.generated_at)}
+                    </span>
+                  </div>
+                  {parsed.statusSection && (
+                    <p className="text-sm text-muted-foreground">
+                      {parsed.statusSection}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Suggested Sessions */}
+          {parsed.sessions.length > 0 && (
+            <div>
+              <h2 className="font-heading text-lg uppercase tracking-tight font-semibold mb-4">
+                {t("guidance.suggestedSessions")}
+              </h2>
+              <div className="space-y-3">
+                {parsed.sessions.map((session, idx) => {
+                  const SessionIcon = getSessionIcon(session.title);
+                  return (
+                    <Card key={idx} className="bg-card border-border" data-testid={`session-${idx}`}>
+                      <CardContent className="p-4">
+                        <div className="flex items-start gap-4">
+                          <div className="w-10 h-10 flex items-center justify-center bg-muted border border-border flex-shrink-0">
+                            <SessionIcon className="w-5 h-5 text-muted-foreground" />
+                          </div>
+                          <div className="flex-1">
+                            <p className="font-mono text-xs uppercase tracking-wider text-primary mb-2">
+                              {session.title}
+                            </p>
+                            <div className="space-y-1">
+                              {session.details.map((detail, dIdx) => (
+                                <p key={dIdx} className="text-sm text-muted-foreground">
+                                  {detail}
+                                </p>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Guidance Note */}
+          {parsed.note && (
+            <Card className="bg-card border-border border-l-2 border-l-primary">
+              <CardContent className="p-4">
+                <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-2">
+                  {lang === "fr" ? "Note" : "Note"}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {parsed.note}
+                </p>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Raw guidance fallback if parsing didn't extract sessions */}
+          {parsed.sessions.length === 0 && guidance.guidance && (
+            <Card className="bg-card border-border">
+              <CardContent className="p-6">
+                <p className="text-sm whitespace-pre-wrap leading-relaxed">
+                  {guidance.guidance}
+                </p>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Disclaimer */}
+          <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground text-center">
+            {t("guidance.disclaimer")}
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
