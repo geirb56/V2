@@ -1,15 +1,20 @@
-from fastapi import FastAPI, APIRouter, HTTPException
+from fastapi import FastAPI, APIRouter, HTTPException, Query
+from fastapi.responses import RedirectResponse
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 import os
 import logging
 import random
+import secrets
+import hashlib
+import base64
+import httpx
 from pathlib import Path
 from pydantic import BaseModel, Field, ConfigDict
-from typing import List, Optional
+from typing import List, Optional, Dict
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from emergentintegrations.llm.chat import LlmChat, UserMessage
 
 ROOT_DIR = Path(__file__).parent
@@ -22,6 +27,12 @@ db = client[os.environ['DB_NAME']]
 
 # LLM API Key
 EMERGENT_LLM_KEY = os.environ.get('EMERGENT_LLM_KEY')
+
+# Garmin OAuth Configuration (placeholder - replace with real credentials)
+GARMIN_CLIENT_ID = os.environ.get('GARMIN_CLIENT_ID', '')
+GARMIN_CLIENT_SECRET = os.environ.get('GARMIN_CLIENT_SECRET', '')
+GARMIN_REDIRECT_URI = os.environ.get('GARMIN_REDIRECT_URI', '')
+FRONTEND_URL = os.environ.get('FRONTEND_URL', 'http://localhost:3000')
 
 # Create the main app
 app = FastAPI()
