@@ -96,6 +96,17 @@ class CoachResponse(BaseModel):
     message_id: str
 
 
+class GuidanceRequest(BaseModel):
+    language: Optional[str] = "en"
+    user_id: Optional[str] = "default"
+
+
+class GuidanceResponse(BaseModel):
+    status: str  # "maintain", "adjust", "hold_steady"
+    guidance: str
+    generated_at: str
+
+
 class ConversationMessage(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
