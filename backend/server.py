@@ -32,6 +32,12 @@ EMERGENT_LLM_KEY = os.environ.get('EMERGENT_LLM_KEY')
 GARMIN_CLIENT_ID = os.environ.get('GARMIN_CLIENT_ID', '')
 GARMIN_CLIENT_SECRET = os.environ.get('GARMIN_CLIENT_SECRET', '')
 GARMIN_REDIRECT_URI = os.environ.get('GARMIN_REDIRECT_URI', '')
+
+# Strava OAuth Configuration
+STRAVA_CLIENT_ID = os.environ.get('STRAVA_CLIENT_ID', '')
+STRAVA_CLIENT_SECRET = os.environ.get('STRAVA_CLIENT_SECRET', '')
+STRAVA_REDIRECT_URI = os.environ.get('STRAVA_REDIRECT_URI', '')
+
 FRONTEND_URL = os.environ.get('FRONTEND_URL', 'http://localhost:3000')
 
 # Create the main app
