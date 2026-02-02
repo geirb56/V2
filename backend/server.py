@@ -317,6 +317,99 @@ L'objectif est de sonner comme un coach reflechi qui remarque des choses que d'a
 
 NO_HIDDEN_INSIGHT = ""
 
+# ========== ADAPTIVE GUIDANCE PROMPTS ==========
+
+ADAPTIVE_GUIDANCE_PROMPT_EN = """Based on the athlete's recent training data, provide adaptive training guidance.
+
+You have access to:
+- Recent workouts (last 7-14 days)
+- Training load summary (volume, intensity distribution, workout types)
+
+Generate SHORT-TERM guidance (not a rigid plan):
+
+1. CURRENT STATUS
+Assess the athlete's current state in ONE of these terms:
+- "MAINTAIN" - training is balanced, continue current approach
+- "ADJUST" - minor tweaks needed based on recent patterns
+- "HOLD STEADY" - consolidate recent work before adding more
+
+Explain in 1-2 sentences why.
+
+2. SUGGESTED SESSIONS (max 3)
+Provide up to 3 suggested next sessions. For each:
+- Type: run/cycle/recovery
+- Focus: what this session targets (aerobic base, speed, recovery, threshold, etc.)
+- Duration/Distance: approximate
+- Intensity: easy/moderate/hard or zone guidance
+- Rationale: ONE sentence explaining "why this helps now" based on recent data
+
+Format each suggestion as:
+SESSION 1: [Type] - [Focus]
+- Duration: [X min] or Distance: [X km]
+- Intensity: [level]
+- Why now: [brief rationale tied to recent training]
+
+3. GUIDANCE NOTE (optional)
+If relevant, add one brief observation about pacing, recovery, or load management.
+
+Rules:
+- No rigid schedules or fixed weekly plans
+- Suggestions are guidance, not obligations
+- Max 3 sessions ahead
+- Calm, technical tone
+- No motivation ("you've got this", "great work")
+- No medical language
+- No alarms or warnings
+- Each suggestion must have a clear "why this helps now" rationale
+
+The goal is to help the athlete train better without cognitive overload."""
+
+ADAPTIVE_GUIDANCE_PROMPT_FR = """En fonction des donnees d'entrainement recentes de l'athlete, fournis des recommandations adaptatives.
+
+Tu as acces a:
+- Les seances recentes (7-14 derniers jours)
+- Resume de la charge (volume, distribution d'intensite, types de seances)
+
+Genere des recommandations A COURT TERME (pas un plan rigide):
+
+1. STATUT ACTUEL
+Evalue l'etat actuel de l'athlete avec UN de ces termes:
+- "MAINTENIR" - l'entrainement est equilibre, continuer l'approche actuelle
+- "AJUSTER" - petits ajustements necessaires selon les patterns recents
+- "CONSOLIDER" - consolider le travail recent avant d'en ajouter
+
+Explique en 1-2 phrases pourquoi.
+
+2. SEANCES SUGGEREES (max 3)
+Propose jusqu'a 3 prochaines seances. Pour chacune:
+- Type: course/velo/recuperation
+- Focus: ce que cette seance cible (base aerobie, vitesse, recuperation, seuil, etc.)
+- Duree/Distance: approximative
+- Intensite: facile/moderee/difficile ou zones
+- Justification: UNE phrase expliquant "pourquoi maintenant" basee sur les donnees recentes
+
+Formate chaque suggestion ainsi:
+SEANCE 1: [Type] - [Focus]
+- Duree: [X min] ou Distance: [X km]
+- Intensite: [niveau]
+- Pourquoi maintenant: [breve justification liee a l'entrainement recent]
+
+3. NOTE DE GUIDANCE (optionnel)
+Si pertinent, ajoute une breve observation sur l'allure, la recuperation ou la gestion de charge.
+
+Regles:
+- Pas de plannings rigides ou plans hebdomadaires fixes
+- Les suggestions sont des recommandations, pas des obligations
+- Max 3 seances a venir
+- Ton calme et technique
+- Pas de motivation ("tu vas y arriver", "super travail")
+- Pas de langage medical
+- Pas d'alarmes ou avertissements
+- Chaque suggestion doit avoir une justification claire "pourquoi maintenant"
+
+L'objectif est d'aider l'athlete a mieux s'entrainer sans surcharge cognitive."""
+
+
 def get_system_prompt(language: str) -> str:
     """Get the appropriate system prompt based on language"""
     if language == "fr":
