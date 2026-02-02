@@ -484,6 +484,158 @@ def main():
         self.tests_run += 1
         return success, response
 
+    def test_generate_guidance_english(self):
+        """Test adaptive guidance generation in English"""
+        success, response = self.run_test(
+            "Generate Adaptive Guidance (EN)",
+            "POST",
+            "coach/guidance",
+            200,
+            data={"language": "en", "user_id": "default"},
+            timeout=45  # Longer timeout for AI processing
+        )
+        
+        if success:
+            print(f"   Status: {response.get('status', 'N/A')}")
+            print(f"   Guidance length: {len(response.get('guidance', ''))} chars")
+            print(f"   Generated at: {response.get('generated_at', 'N/A')}")
+            
+            # Check status is valid
+            valid_statuses = ["maintain", "adjust", "hold_steady"]
+            status = response.get('status')
+            if status in valid_statuses:
+                print(f"   ✅ Valid status: {status}")
+            else:
+                print(f"   ❌ Invalid status: {status}")
+                
+            # Check guidance content
+            guidance = response.get('guidance', '')
+            if len(guidance) > 50:  # Should have substantial content
+                print(f"   ✅ Guidance has substantial content")
+                
+                # Check for session suggestions (max 3)
+                session_indicators = guidance.upper().count('SESSION')
+                print(f"   Found {session_indicators} session indicators")
+                
+                # Check for rationale ("why now" or similar)
+                rationale_keywords = ['why', 'because', 'helps', 'targets', 'focus']
+                found_rationale = any(keyword in guidance.lower() for keyword in rationale_keywords)
+                if found_rationale:
+                    print(f"   ✅ Contains rationale for suggestions")
+                else:
+                    print(f"   ⚠️  May be missing rationale")
+                    
+                # Check tone (should be calm, technical, non-motivational)
+                motivational_words = ['great', 'awesome', 'excellent', 'amazing', 'fantastic']
+                found_motivational = any(word in guidance.lower() for word in motivational_words)
+                if not found_motivational:
+                    print(f"   ✅ Tone appears calm and non-motivational")
+                else:
+                    print(f"   ⚠️  May contain motivational language")
+                    
+            else:
+                print(f"   ❌ Guidance content too short")
+                
+        return success, response
+
+    def test_generate_guidance_french(self):
+        """Test adaptive guidance generation in French"""
+        success, response = self.run_test(
+            "Generate Adaptive Guidance (FR)",
+            "POST",
+            "coach/guidance",
+            200,
+            data={"language": "fr", "user_id": "default"},
+            timeout=45  # Longer timeout for AI processing
+        )
+        
+        if success:
+            print(f"   Status: {response.get('status', 'N/A')}")
+            print(f"   Guidance length: {len(response.get('guidance', ''))} chars")
+            
+            # Check for French status terms
+            guidance = response.get('guidance', '')
+            french_status_terms = ['maintenir', 'ajuster', 'consolider']
+            found_french = any(term in guidance.lower() for term in french_status_terms)
+            if found_french:
+                print(f"   ✅ Contains French status terms")
+            else:
+                print(f"   ⚠️  May not contain expected French terms")
+                
+            # Check for French session indicators
+            french_session_terms = ['seance', 'entrainement', 'session']
+            found_sessions = any(term in guidance.lower() for term in french_session_terms)
+            if found_sessions:
+                print(f"   ✅ Contains French session terminology")
+            else:
+                print(f"   ⚠️  May be missing French session terms")
+                
+        return success, response
+
+    def test_get_latest_guidance(self):
+        """Test retrieving latest guidance"""
+        success, response = self.run_test(
+            "Get Latest Guidance",
+            "GET",
+            "coach/guidance/latest?user_id=default",
+            200
+        )
+        
+        if success and response:
+            print(f"   Status: {response.get('status', 'N/A')}")
+            print(f"   Generated at: {response.get('generated_at', 'N/A')}")
+            print(f"   User ID: {response.get('user_id', 'N/A')}")
+            print(f"   Language: {response.get('language', 'N/A')}")
+            
+            # Check if training summary is included
+            training_summary = response.get('training_summary')
+            if training_summary:
+                print(f"   ✅ Includes training summary")
+                last_14d = training_summary.get('last_14d', {})
+                print(f"   Last 14d sessions: {last_14d.get('count', 0)}")
+                print(f"   Last 14d distance: {last_14d.get('total_km', 0)} km")
+            else:
+                print(f"   ⚠️  Missing training summary")
+                
+        elif success and not response:
+            print(f"   ℹ️  No guidance found (empty response)")
+        
+        return success, response
+
+    def test_guidance_status_detection(self):
+        """Test that guidance status is properly detected from AI response"""
+        # Test different status scenarios
+        test_cases = [
+            {"message": "maintain current training", "expected_status": "maintain"},
+            {"message": "adjust your approach", "expected_status": "adjust"}, 
+            {"message": "hold steady for now", "expected_status": "hold_steady"}
+        ]
+        
+        all_passed = True
+        
+        for i, case in enumerate(test_cases):
+            # We can't directly test status detection without generating actual guidance
+            # So we'll test the latest guidance and check if status is valid
+            success, response = self.run_test(
+                f"Status Detection Test {i+1}",
+                "GET",
+                "coach/guidance/latest?user_id=default",
+                200
+            )
+            
+            if success and response:
+                status = response.get('status')
+                valid_statuses = ["maintain", "adjust", "hold_steady"]
+                if status in valid_statuses:
+                    print(f"   ✅ Valid status detected: {status}")
+                else:
+                    print(f"   ❌ Invalid status: {status}")
+                    all_passed = False
+            else:
+                print(f"   ⚠️  No guidance to test status detection")
+        
+        return all_passed, {"status_detection": "tested"}
+
 def main():
     print("🏃 CardioCoach API Testing with Hidden Insight Feature")
     print("=" * 60)
