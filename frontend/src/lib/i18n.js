@@ -250,6 +250,15 @@ export const translations = {
       about: "A propos",
       aboutDesc: "CardioCoach est un outil de coaching endurance elite pour coureurs et cyclistes. Ceci n'est pas une application medicale.",
       version: "Version",
+      dataSync: "Synchronisation",
+      dataSyncDesc: "Connectez votre tracker pour importer vos seances",
+      connected: "Connecte",
+      notConnected: "Non connecte",
+      connect: "Connecter",
+      disconnect: "Deconnecter",
+      sync: "Synchroniser",
+      lastSync: "Derniere synchro",
+      workouts: "Seances",
     },
     
     // Common
