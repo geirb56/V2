@@ -72,6 +72,25 @@ CardioCoach is an elite endurance coaching app specialized in running, cycling, 
 - Backend logs hidden insight inclusion status
 - Goal: perceived coach intelligence without overuse
 
+### Phase 6 - Adaptive Training Guidance (Feb 2, 2026)
+- New /guidance page for short-term training recommendations
+- No rigid schedules or fixed weekly plans
+- Adapts based on completed workouts (analyzes last 14 days)
+- Max 3 suggested sessions ahead
+- Each suggestion includes:
+  - Type (run/cycle/recovery)
+  - Focus (aerobic base, speed, recovery, threshold)
+  - Duration/Distance
+  - Intensity (easy/moderate/hard)
+  - "Why now" rationale tied to recent training
+- Status indicators:
+  - MAINTAIN: training balanced, continue approach
+  - ADJUST: minor tweaks needed
+  - HOLD STEADY: consolidate before adding more
+- Calm, technical, non-motivational tone
+- Full EN/FR support
+- Disclaimer: "Guidance only. Not a fixed plan."
+
 ### Backend
 - API Endpoints:
   - `GET /api/workouts` - List all workouts
