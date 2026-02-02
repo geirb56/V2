@@ -85,55 +85,6 @@ export default function Guidance() {
     }
   };
 
-  const parseGuidance = (text) => {
-    if (!text) return { status: null, sessions: [], note: null };
-    
-    const lines = text.split("\n");
-    const sessions = [];
-    let currentSession = null;
-    let note = null;
-    let statusSection = "";
-    
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i].trim();
-      
-      // Detect session headers
-      if (line.match(/^(SESSION|SEANCE)\s*\d/i)) {
-        if (currentSession) sessions.push(currentSession);
-        currentSession = { title: line, details: [] };
-      } else if (currentSession && line.startsWith("-")) {
-        currentSession.details.push(line.substring(1).trim());
-      } else if (line.match(/^(GUIDANCE NOTE|NOTE DE GUIDANCE)/i)) {
-        if (currentSession) {
-          sessions.push(currentSession);
-          currentSession = null;
-        }
-        // Collect note lines
-        const noteLines = [];
-        for (let j = i + 1; j < lines.length; j++) {
-          if (lines[j].trim() && !lines[j].match(/^\d\./)) {
-            noteLines.push(lines[j].trim());
-          } else if (lines[j].match(/^\d\./)) {
-            break;
-          }
-        }
-        note = noteLines.join(" ");
-      } else if (line.match(/^(CURRENT STATUS|STATUT ACTUEL)/i)) {
-        // Collect status section
-        const statusLines = [];
-        for (let j = i + 1; j < lines.length; j++) {
-          if (lines[j].match(/^\d\.\s*(SUGGESTED|SEANCE)/i)) break;
-          if (lines[j].trim()) statusLines.push(lines[j].trim());
-        }
-        statusSection = statusLines.join(" ");
-      }
-    }
-    
-    if (currentSession) sessions.push(currentSession);
-    
-    return { statusSection, sessions, note };
-  };
-
   const formatTimeAgo = (isoString) => {
     if (!isoString) return "";
     const date = new Date(isoString);
@@ -165,7 +116,6 @@ export default function Guidance() {
 
   const statusInfo = guidance?.status ? statusConfig[guidance.status] : statusConfig.maintain;
   const StatusIcon = statusInfo.icon;
-  const parsed = parseGuidance(guidance?.guidance);
 
   return (
     <div className="p-6 md:p-8 pb-24 md:pb-8" data-testid="guidance-page">
@@ -233,77 +183,24 @@ export default function Guidance() {
                       {formatTimeAgo(guidance.generated_at)}
                     </span>
                   </div>
-                  {parsed.statusSection && (
-                    <p className="text-sm text-muted-foreground">
-                      {parsed.statusSection}
-                    </p>
-                  )}
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* Suggested Sessions */}
-          {parsed.sessions.length > 0 && (
-            <div>
-              <h2 className="font-heading text-lg uppercase tracking-tight font-semibold mb-4">
+          {/* Guidance Content */}
+          <Card className="bg-card border-border">
+            <CardContent className="p-6">
+              <p className="font-mono text-[10px] uppercase tracking-widest text-primary mb-4">
                 {t("guidance.suggestedSessions")}
-              </h2>
-              <div className="space-y-3">
-                {parsed.sessions.map((session, idx) => {
-                  const SessionIcon = getSessionIcon(session.title);
-                  return (
-                    <Card key={idx} className="bg-card border-border" data-testid={`session-${idx}`}>
-                      <CardContent className="p-4">
-                        <div className="flex items-start gap-4">
-                          <div className="w-10 h-10 flex items-center justify-center bg-muted border border-border flex-shrink-0">
-                            <SessionIcon className="w-5 h-5 text-muted-foreground" />
-                          </div>
-                          <div className="flex-1">
-                            <p className="font-mono text-xs uppercase tracking-wider text-primary mb-2">
-                              {session.title}
-                            </p>
-                            <div className="space-y-1">
-                              {session.details.map((detail, dIdx) => (
-                                <p key={dIdx} className="text-sm text-muted-foreground">
-                                  {detail}
-                                </p>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* Guidance Note */}
-          {parsed.note && (
-            <Card className="bg-card border-border border-l-2 border-l-primary">
-              <CardContent className="p-4">
-                <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-2">
-                  {lang === "fr" ? "Note" : "Note"}
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  {parsed.note}
-                </p>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Raw guidance fallback if parsing didn't extract sessions */}
-          {parsed.sessions.length === 0 && guidance.guidance && (
-            <Card className="bg-card border-border">
-              <CardContent className="p-6">
-                <p className="text-sm whitespace-pre-wrap leading-relaxed">
+              </p>
+              <div className="prose prose-sm prose-invert max-w-none">
+                <p className="text-sm whitespace-pre-wrap leading-relaxed text-foreground/90">
                   {guidance.guidance}
                 </p>
-              </CardContent>
-            </Card>
-          )}
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Disclaimer */}
           <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground text-center">
