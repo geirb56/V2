@@ -1,5 +1,5 @@
 import { Outlet, NavLink, useLocation } from "react-router-dom";
-import { Activity, MessageSquare, BarChart3, Home, Settings } from "lucide-react";
+import { Activity, MessageSquare, BarChart3, Home, Settings, Compass } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
 
 export const Layout = () => {
@@ -8,6 +8,7 @@ export const Layout = () => {
 
   const navItems = [
     { path: "/", icon: Home, labelKey: "nav.dashboard" },
+    { path: "/guidance", icon: Compass, labelKey: "nav.guidance" },
     { path: "/coach", icon: MessageSquare, labelKey: "nav.coach" },
     { path: "/progress", icon: BarChart3, labelKey: "nav.progress" },
     { path: "/settings", icon: Settings, labelKey: "nav.settings" },
