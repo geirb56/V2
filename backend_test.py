@@ -484,6 +484,29 @@ def main():
     print("\n⚠️  Testing Coach Memory Persistence (may take 20-40 seconds)...")
     tester.test_coach_memory_persistence()
     
+    # NEW: Test Garmin Integration Features
+    print("\n🏃 Testing Garmin Integration Features...")
+    
+    # Test Garmin status
+    print("\n📊 Testing Garmin Status...")
+    tester.test_garmin_status()
+    
+    # Test Garmin authorization (should fail with placeholder credentials)
+    print("\n🔐 Testing Garmin Authorization (expected to fail)...")
+    tester.test_garmin_authorize()
+    
+    # Test Garmin sync when not connected
+    print("\n🔄 Testing Garmin Sync (not connected)...")
+    tester.test_garmin_sync_not_connected()
+    
+    # Test Garmin disconnect
+    print("\n🔌 Testing Garmin Disconnect...")
+    tester.test_garmin_disconnect()
+    
+    # Test Garmin conversion function and workout schema
+    print("\n⚙️  Testing Garmin Conversion & Workout Schema...")
+    tester.test_garmin_conversion_function()
+    
     # Test clear history (do this last)
     print("\n🗑️  Testing Clear History...")
     tester.test_clear_coach_history()
