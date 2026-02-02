@@ -322,6 +322,137 @@ def convert_garmin_to_workout(garmin_activity: dict, user_id: str = "default") -
     return workout
 
 
+# ========== STRAVA INTEGRATION HELPERS ==========
+
+async def exchange_strava_code(code: str) -> dict:
+    """Exchange authorization code for Strava access token"""
+    async with httpx.AsyncClient() as client:
+        response = await client.post(
+            "https://www.strava.com/api/v3/oauth/token",
+            data={
+                "client_id": STRAVA_CLIENT_ID,
+                "client_secret": STRAVA_CLIENT_SECRET,
+                "code": code,
+                "grant_type": "authorization_code"
+            }
+        )
+        response.raise_for_status()
+        return response.json()
+
+
+async def refresh_strava_token(refresh_token: str) -> dict:
+    """Refresh Strava access token"""
+    async with httpx.AsyncClient() as client:
+        response = await client.post(
+            "https://www.strava.com/api/v3/oauth/token",
+            data={
+                "client_id": STRAVA_CLIENT_ID,
+                "client_secret": STRAVA_CLIENT_SECRET,
+                "grant_type": "refresh_token",
+                "refresh_token": refresh_token
+            }
+        )
+        response.raise_for_status()
+        return response.json()
+
+
+async def fetch_strava_activities(access_token: str, per_page: int = 100) -> list:
+    """Fetch activities from Strava API"""
+    async with httpx.AsyncClient() as client:
+        response = await client.get(
+            "https://www.strava.com/api/v3/athlete/activities",
+            headers={"Authorization": f"Bearer {access_token}"},
+            params={"per_page": per_page, "page": 1}
+        )
+        response.raise_for_status()
+        return response.json()
+
+
+def convert_strava_to_workout(strava_activity: dict) -> dict:
+    """Convert Strava activity to CardioCoach workout format"""
+    # Map Strava activity types to our types
+    activity_type_map = {
+        "run": "run",
+        "ride": "cycle",
+        "virtualrun": "run",
+        "virtualride": "cycle",
+        "trailrun": "run",
+        "mountainbikeride": "cycle",
+        "gravelride": "cycle",
+        "ebikeride": "cycle",
+    }
+    
+    strava_type = strava_activity.get("type", "").lower()
+    workout_type = activity_type_map.get(strava_type, None)
+    
+    # Only import running and cycling
+    if not workout_type:
+        return None
+    
+    # Extract metrics with graceful fallback for missing data
+    elapsed_time = strava_activity.get("elapsed_time", 0)  # in seconds
+    distance = strava_activity.get("distance", 0)  # in meters
+    avg_hr = strava_activity.get("average_heartrate")
+    max_hr = strava_activity.get("max_heartrate")
+    elevation = strava_activity.get("total_elevation_gain")
+    calories = strava_activity.get("calories")
+    avg_speed = strava_activity.get("average_speed", 0)  # in m/s
+    
+    # Calculate pace (for runs) or speed (for rides)
+    avg_pace_min_km = None
+    avg_speed_kmh = None
+    
+    if avg_speed and avg_speed > 0:
+        if workout_type == "run":
+            # Convert m/s to min/km
+            speed_km_per_min = (avg_speed * 60) / 1000
+            if speed_km_per_min > 0:
+                avg_pace_min_km = round(1 / speed_km_per_min, 2)
+        else:
+            # Convert m/s to km/h
+            avg_speed_kmh = round(avg_speed * 3.6, 1)
+    
+    # Parse start time
+    start_date = strava_activity.get("start_date_local") or strava_activity.get("start_date")
+    if start_date:
+        try:
+            date_obj = datetime.fromisoformat(start_date.replace("Z", "+00:00"))
+            date_str = date_obj.strftime("%Y-%m-%d")
+        except:
+            date_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    else:
+        date_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    
+    # Build workout object
+    workout = {
+        "id": f"strava_{strava_activity.get('id', uuid.uuid4())}",
+        "type": workout_type,
+        "name": strava_activity.get("name", f"{workout_type.title()} Workout"),
+        "date": date_str,
+        "duration_minutes": round(elapsed_time / 60) if elapsed_time else 0,
+        "distance_km": round(distance / 1000, 2) if distance else 0,
+        "data_source": "strava",
+        "strava_activity_id": str(strava_activity.get("id")),
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    # Add optional fields only if present (graceful handling)
+    if avg_hr:
+        workout["avg_heart_rate"] = int(avg_hr)
+    if max_hr:
+        workout["max_heart_rate"] = int(max_hr)
+    if avg_pace_min_km:
+        workout["avg_pace_min_km"] = avg_pace_min_km
+    if avg_speed_kmh:
+        workout["avg_speed_kmh"] = avg_speed_kmh
+    if calories:
+        workout["calories"] = int(calories)
+    if elevation:
+        workout["elevation_gain_m"] = int(elevation)
+    
+    return workout
+
+
 # ========== CARDIOCOACH SYSTEM PROMPTS ==========
 
 CARDIOCOACH_SYSTEM_EN = """You are CardioCoach.
