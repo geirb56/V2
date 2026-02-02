@@ -315,6 +315,87 @@ class CardioCoachAPITester:
         
         return success, response
 
+    # ========== GARMIN INTEGRATION TESTS ==========
+    
+    def test_garmin_status(self):
+        """Test Garmin connection status"""
+        success, response = self.run_test(
+            "Garmin Connection Status", 
+            "GET", 
+            "garmin/status?user_id=default", 
+            200
+        )
+        if success:
+            print(f"   Connected: {response.get('connected', False)}")
+            print(f"   Last sync: {response.get('last_sync', 'Never')}")
+            print(f"   Workout count: {response.get('workout_count', 0)}")
+        return success, response
+
+    def test_garmin_authorize(self):
+        """Test Garmin OAuth authorization (should return error when credentials not configured)"""
+        success, response = self.run_test(
+            "Garmin OAuth Authorization", 
+            "GET", 
+            "garmin/authorize", 
+            503  # Expected to fail with 503 when credentials not configured
+        )
+        if not success and response:
+            print(f"   Expected error message: {response}")
+        return success, response
+
+    def test_garmin_sync_not_connected(self):
+        """Test Garmin sync when not connected (should handle gracefully)"""
+        success, response = self.run_test(
+            "Garmin Sync (Not Connected)", 
+            "POST", 
+            "garmin/sync?user_id=default", 
+            200
+        )
+        if success:
+            print(f"   Success: {response.get('success', False)}")
+            print(f"   Message: {response.get('message', 'N/A')}")
+            print(f"   Synced count: {response.get('synced_count', 0)}")
+        return success, response
+
+    def test_garmin_disconnect(self):
+        """Test Garmin disconnect"""
+        success, response = self.run_test(
+            "Garmin Disconnect", 
+            "DELETE", 
+            "garmin/disconnect?user_id=default", 
+            200
+        )
+        if success:
+            print(f"   Success: {response.get('success', False)}")
+            print(f"   Message: {response.get('message', 'N/A')}")
+        return success, response
+
+    def test_garmin_conversion_function(self):
+        """Test Garmin activity conversion logic by checking workout schema"""
+        # First get existing workouts to check for data_source field
+        success, workouts = self.test_get_workouts()
+        if success and workouts:
+            # Check if any workouts have data_source field
+            garmin_workouts = [w for w in workouts if w.get('data_source') == 'garmin']
+            mock_workouts = [w for w in workouts if w.get('data_source') != 'garmin']
+            
+            print(f"   Total workouts: {len(workouts)}")
+            print(f"   Garmin workouts: {len(garmin_workouts)}")
+            print(f"   Mock/other workouts: {len(mock_workouts)}")
+            
+            # Check workout schema includes data_source field
+            if workouts:
+                sample_workout = workouts[0]
+                has_data_source = 'data_source' in sample_workout
+                print(f"   Workout schema includes data_source: {has_data_source}")
+                
+                # Check for Garmin-specific fields
+                garmin_fields = ['garmin_activity_id']
+                found_garmin_fields = [field for field in garmin_fields if field in sample_workout]
+                print(f"   Found Garmin-specific fields: {found_garmin_fields}")
+        
+        return success, workouts
+
 def main():
     print("🏃 CardioCoach API Testing with Hidden Insight & Guidance Features")
     print("=" * 70)
