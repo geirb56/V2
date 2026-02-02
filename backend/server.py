@@ -66,6 +66,8 @@ class Workout(BaseModel):
     calories: Optional[int] = None
     effort_zone_distribution: Optional[dict] = None  # {"z1": 10, "z2": 25, ...}
     notes: Optional[str] = None
+    data_source: Optional[str] = "manual"  # "manual", "garmin", etc.
+    garmin_activity_id: Optional[str] = None  # For Garmin workouts
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 
