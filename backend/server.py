@@ -744,6 +744,7 @@ def get_mock_workouts():
             "calories": 520,
             "effort_zone_distribution": {"z1": 15, "z2": 55, "z3": 25, "z4": 5, "z5": 0},
             "notes": None,
+            "data_source": "manual",
             "created_at": "2026-01-13T07:30:00Z"
         },
         {
@@ -760,6 +761,7 @@ def get_mock_workouts():
             "calories": 1180,
             "effort_zone_distribution": {"z1": 5, "z2": 25, "z3": 45, "z4": 20, "z5": 5},
             "notes": None,
+            "data_source": "manual",
             "created_at": "2026-01-12T09:00:00Z"
         },
         {
@@ -776,6 +778,7 @@ def get_mock_workouts():
             "calories": 680,
             "effort_zone_distribution": {"z1": 10, "z2": 20, "z3": 25, "z4": 30, "z5": 15},
             "notes": "5x1000m @ threshold",
+            "data_source": "manual",
             "created_at": "2026-01-11T06:45:00Z"
         },
         {
@@ -792,6 +795,7 @@ def get_mock_workouts():
             "calories": 1350,
             "effort_zone_distribution": {"z1": 20, "z2": 65, "z3": 15, "z4": 0, "z5": 0},
             "notes": None,
+            "data_source": "manual",
             "created_at": "2026-01-10T07:00:00Z"
         },
         {
@@ -808,6 +812,7 @@ def get_mock_workouts():
             "calories": 380,
             "effort_zone_distribution": {"z1": 60, "z2": 35, "z3": 5, "z4": 0, "z5": 0},
             "notes": None,
+            "data_source": "manual",
             "created_at": "2026-01-09T17:30:00Z"
         },
         {
@@ -824,6 +829,7 @@ def get_mock_workouts():
             "calories": 620,
             "effort_zone_distribution": {"z1": 10, "z2": 25, "z3": 30, "z4": 25, "z5": 10},
             "notes": "8x200m hill sprints",
+            "data_source": "manual",
             "created_at": "2026-01-08T06:30:00Z"
         },
         {
@@ -840,6 +846,7 @@ def get_mock_workouts():
             "calories": 1520,
             "effort_zone_distribution": {"z1": 15, "z2": 60, "z3": 20, "z4": 5, "z5": 0},
             "notes": None,
+            "data_source": "manual",
             "created_at": "2026-01-07T08:00:00Z"
         }
     ]
