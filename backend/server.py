@@ -1596,7 +1596,7 @@ async def strava_authorize(user_id: str = "default"):
     if not STRAVA_CLIENT_ID or not STRAVA_CLIENT_SECRET:
         raise HTTPException(
             status_code=503, 
-            detail="Strava integration not configured. Please contact the administrator."
+            detail="Data sync not configured. Please contact the administrator."
         )
     
     # Generate state for security
