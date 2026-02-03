@@ -54,6 +54,26 @@ export const translations = {
       },
     },
     
+    // Workout Analysis (Mobile)
+    analysis: {
+      intensity: "Intensity",
+      load: "Load",
+      comparison: "vs Baseline",
+      pace: "Pace",
+      speed: "Speed",
+      avgHr: "Avg HR",
+      paceDelta: "Pace",
+      hrDelta: "HR",
+      coachInsight: "Coach Note",
+      viewFullAnalysis: "View full analysis",
+      askCoach: "Ask the coach",
+      labels: {
+        above_usual: "Above usual",
+        below_usual: "Below usual",
+        normal: "Normal",
+      },
+    },
+    
     // Coach
     coach: {
       title: "Coach",
