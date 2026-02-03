@@ -26,7 +26,8 @@ export default function Settings() {
     if (stravaParam === "connected") {
       toast.success(lang === "fr" ? "Compte connecte" : "Account connected");
       setSearchParams({});
-      loadStravaStatus();
+      // Auto-trigger initial sync after connection
+      triggerInitialSync();
     } else if (stravaParam === "error") {
       const reason = searchParams.get("reason");
       const errorMsg = lang === "fr" ? "Erreur de connexion" : "Connection failed";
@@ -34,6 +35,24 @@ export default function Settings() {
       setSearchParams({});
     }
   }, [searchParams]);
+
+  const triggerInitialSync = async () => {
+    setSyncing(true);
+    try {
+      const res = await axios.post(`${API}/strava/sync?user_id=${USER_ID}`);
+      if (res.data.success) {
+        const msg = lang === "fr" 
+          ? `${res.data.synced_count} seances importees` 
+          : `${res.data.synced_count} workouts imported`;
+        toast.success(msg);
+      }
+      loadStravaStatus();
+    } catch (error) {
+      console.error("Initial sync failed:", error);
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   const loadStravaStatus = async () => {
     try {
