@@ -20,6 +20,65 @@ import {
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const USER_ID = "default";
 
+function ZoneBar({ zones }) {
+  if (!zones) return null;
+  const z1 = zones.z1 || 0;
+  const z2 = zones.z2 || 0;
+  const z3 = zones.z3 || 0;
+  const z4 = zones.z4 || 0;
+  const z5 = zones.z5 || 0;
+  
+  return (
+    <div className="flex h-3 rounded-sm overflow-hidden">
+      <div style={{ width: `${z1}%` }} className="bg-chart-2/40" />
+      <div style={{ width: `${z2}%` }} className="bg-chart-2" />
+      <div style={{ width: `${z3}%` }} className="bg-chart-3" />
+      <div style={{ width: `${z4}%` }} className="bg-chart-1/80" />
+      <div style={{ width: `${z5}%` }} className="bg-chart-1" />
+    </div>
+  );
+}
+
+function SignalCard({ signal, t, getLoadIcon, getLoadColor, getIntensityIcon, getIntensityColor, getConsistencyColor }) {
+  const getColor = () => {
+    if (signal.key === "load") return getLoadColor(signal.status);
+    if (signal.key === "intensity") return getIntensityColor(signal.status);
+    return getConsistencyColor(signal.status);
+  };
+  
+  return (
+    <Card className="bg-card border-border">
+      <CardContent className="p-3 text-center">
+        <div className={`flex justify-center mb-2 ${getColor()}`}>
+          {signal.key === "load" && getLoadIcon(signal.status)}
+          {signal.key === "intensity" && getIntensityIcon(signal.status)}
+          {signal.key === "consistency" && <Calendar className="w-5 h-5" />}
+        </div>
+        <p className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground mb-1">
+          {t(`digest.signals.${signal.key}`)}
+        </p>
+        <p className="font-mono text-xs font-semibold">
+          {signal.key === "load" && signal.value !== null && (
+            <span className={getLoadColor(signal.status)}>
+              {signal.value > 0 ? "+" : ""}{signal.value}%
+            </span>
+          )}
+          {signal.key === "intensity" && (
+            <span className={getIntensityColor(signal.status)}>
+              {t(`digest.intensity.${signal.status}`)}
+            </span>
+          )}
+          {signal.key === "consistency" && (
+            <span className={getConsistencyColor(signal.status)}>
+              {signal.value}%
+            </span>
+          )}
+        </p>
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function Digest() {
   const { t, lang } = useLanguage();
   const navigate = useNavigate();
@@ -50,43 +109,33 @@ export default function Digest() {
   };
 
   const getLoadIcon = (status) => {
-    switch (status) {
-      case "up": return <TrendingUp className="w-5 h-5" />;
-      case "down": return <TrendingDown className="w-5 h-5" />;
-      default: return <Minus className="w-5 h-5" />;
-    }
+    if (status === "up") return <TrendingUp className="w-5 h-5" />;
+    if (status === "down") return <TrendingDown className="w-5 h-5" />;
+    return <Minus className="w-5 h-5" />;
   };
 
   const getLoadColor = (status) => {
-    switch (status) {
-      case "up": return "text-chart-1";
-      case "down": return "text-chart-4";
-      default: return "text-chart-2";
-    }
+    if (status === "up") return "text-chart-1";
+    if (status === "down") return "text-chart-4";
+    return "text-chart-2";
   };
 
   const getIntensityIcon = (status) => {
-    switch (status) {
-      case "hard": return <Flame className="w-5 h-5" />;
-      case "easy": return <Activity className="w-5 h-5" />;
-      default: return <Target className="w-5 h-5" />;
-    }
+    if (status === "hard") return <Flame className="w-5 h-5" />;
+    if (status === "easy") return <Activity className="w-5 h-5" />;
+    return <Target className="w-5 h-5" />;
   };
 
   const getIntensityColor = (status) => {
-    switch (status) {
-      case "hard": return "text-chart-1";
-      case "easy": return "text-chart-2";
-      default: return "text-primary";
-    }
+    if (status === "hard") return "text-chart-1";
+    if (status === "easy") return "text-chart-2";
+    return "text-primary";
   };
 
   const getConsistencyColor = (status) => {
-    switch (status) {
-      case "high": return "text-chart-2";
-      case "moderate": return "text-chart-3";
-      default: return "text-chart-4";
-    }
+    if (status === "high") return "text-chart-2";
+    if (status === "moderate") return "text-chart-3";
+    return "text-chart-4";
   };
 
   const formatDateRange = () => {
@@ -96,6 +145,17 @@ export default function Digest() {
     const locale = lang === "fr" ? "fr-FR" : "en-US";
     const opts = { month: "short", day: "numeric" };
     return `${start.toLocaleDateString(locale, opts)} - ${end.toLocaleDateString(locale, opts)}`;
+  };
+
+  const getMetrics = () => {
+    if (!digest || !digest.metrics) return null;
+    return digest.metrics;
+  };
+
+  const getZones = () => {
+    const m = getMetrics();
+    if (!m) return null;
+    return m.zone_distribution;
   };
 
   if (loading) {
@@ -110,6 +170,12 @@ export default function Digest() {
       </div>
     );
   }
+
+  const metrics = getMetrics();
+  const zones = getZones();
+  const signals = digest?.signals || [];
+  const insights = digest?.insights || [];
+  const hours = metrics ? Math.round(metrics.total_duration_min / 60 * 10) / 10 : 0;
 
   return (
     <div className="p-4 md:p-8 pb-24 md:pb-8" data-testid="digest-page">
@@ -146,51 +212,28 @@ export default function Digest() {
 
       {/* Visual Signals Grid */}
       <div className="grid grid-cols-3 gap-2 mb-4">
-        {digest?.signals?.map((signal) => (
-          <Card key={signal.key} className="bg-card border-border">
-            <CardContent className="p-3 text-center">
-              <div className={`flex justify-center mb-2 ${
-                signal.key === "load" ? getLoadColor(signal.status) :
-                signal.key === "intensity" ? getIntensityColor(signal.status) :
-                getConsistencyColor(signal.status)
-              }`}>
-                {signal.key === "load" && getLoadIcon(signal.status)}
-                {signal.key === "intensity" && getIntensityIcon(signal.status)}
-                {signal.key === "consistency" && <Calendar className="w-5 h-5" />}
-              </div>
-              <p className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground mb-1">
-                {t(`digest.signals.${signal.key}`)}
-              </p>
-              <p className="font-mono text-xs font-semibold">
-                {signal.key === "load" && signal.value !== null && (
-                  <span className={getLoadColor(signal.status)}>
-                    {signal.value > 0 ? "+" : ""}{signal.value}%
-                  </span>
-                )}
-                {signal.key === "intensity" && (
-                  <span className={getIntensityColor(signal.status)}>
-                    {t(`digest.intensity.${signal.status}`)}
-                  </span>
-                )}
-                {signal.key === "consistency" && (
-                  <span className={getConsistencyColor(signal.status)}>
-                    {signal.value}%
-                  </span>
-                )}
-              </p>
-            </CardContent>
-          </Card>
+        {signals.map((signal) => (
+          <SignalCard 
+            key={signal.key}
+            signal={signal}
+            t={t}
+            getLoadIcon={getLoadIcon}
+            getLoadColor={getLoadColor}
+            getIntensityIcon={getIntensityIcon}
+            getIntensityColor={getIntensityColor}
+            getConsistencyColor={getConsistencyColor}
+          />
         ))}
       </div>
 
       {/* Metrics Bar */}
-      {digest?.metrics && (
+      {metrics && (
         <Card className="bg-card border-border mb-4">
           <CardContent className="p-4">
             <div className="flex items-center justify-between divide-x divide-border">
               <div className="flex-1 text-center pr-3">
                 <p className="font-mono text-lg md:text-xl font-bold text-foreground">
-                  {digest.metrics.total_sessions}
+                  {metrics.total_sessions}
                 </p>
                 <p className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground">
                   {t("digest.sessions")}
@@ -198,7 +241,7 @@ export default function Digest() {
               </div>
               <div className="flex-1 text-center px-3">
                 <p className="font-mono text-lg md:text-xl font-bold text-foreground">
-                  {digest.metrics.total_distance_km}
+                  {metrics.total_distance_km}
                 </p>
                 <p className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground">
                   {t("digest.km")}
@@ -206,7 +249,7 @@ export default function Digest() {
               </div>
               <div className="flex-1 text-center pl-3">
                 <p className="font-mono text-lg md:text-xl font-bold text-foreground">
-                  {Math.round(digest.metrics.total_duration_min / 60 * 10) / 10}
+                  {hours}
                 </p>
                 <p className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground">
                   {t("digest.hours")}
@@ -218,19 +261,13 @@ export default function Digest() {
       )}
 
       {/* Zone Distribution Bar */}
-      {digest?.metrics?.zone_distribution && (
+      {zones && (
         <Card className="bg-card border-border mb-4">
           <CardContent className="p-4">
             <p className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground mb-3">
               {t("digest.zoneDistribution")}
             </p>
-            <div className="flex h-3 rounded-sm overflow-hidden">
-              <div style={{ width: `${digest.metrics.zone_distribution.z1 || 0}%` }} className="bg-chart-2/40" title={`Z1: ${digest.metrics.zone_distribution.z1}%`} />
-              <div style={{ width: `${digest.metrics.zone_distribution.z2 || 0}%` }} className="bg-chart-2" title={`Z2: ${digest.metrics.zone_distribution.z2}%`} />
-              <div style={{ width: `${digest.metrics.zone_distribution.z3 || 0}%` }} className="bg-chart-3" title={`Z3: ${digest.metrics.zone_distribution.z3}%`} />
-              <div style={{ width: `${digest.metrics.zone_distribution.z4 || 0}%` }} className="bg-chart-1/80" title={`Z4: ${digest.metrics.zone_distribution.z4}%`} />
-              <div style={{ width: `${digest.metrics.zone_distribution.z5 || 0}%` }} className="bg-chart-1" title={`Z5: ${digest.metrics.zone_distribution.z5}%`} />
-            </div>
+            <ZoneBar zones={zones} />
             <div className="flex justify-between mt-2">
               <span className="font-mono text-[8px] text-muted-foreground">Z1</span>
               <span className="font-mono text-[8px] text-muted-foreground">Z5</span>
@@ -240,14 +277,14 @@ export default function Digest() {
       )}
 
       {/* Coach Insights */}
-      {digest?.insights && digest.insights.length > 0 && (
+      {insights.length > 0 && (
         <Card className="bg-card border-border mb-4">
           <CardContent className="p-4">
             <p className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground mb-3">
               {t("digest.coachInsights")}
             </p>
             <div className="space-y-2">
-              {digest.insights.map((insight, idx) => (
+              {insights.map((insight, idx) => (
                 <div key={idx} className="flex items-start gap-2">
                   <span className="w-1 h-1 mt-2 rounded-full bg-primary flex-shrink-0" />
                   <p className="font-mono text-xs text-muted-foreground leading-relaxed">
