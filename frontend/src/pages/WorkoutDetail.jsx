@@ -12,7 +12,7 @@ import {
   Minus,
   Zap,
   Scale,
-  GitCompare,
+  Activity,
   MessageSquare,
   Loader2,
   Bike,
@@ -41,11 +41,10 @@ export default function WorkoutDetail() {
   const [workout, setWorkout] = useState(null);
   const [analysis, setAnalysis] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [analyzing, setAnalyzing] = useState(false);
 
   useEffect(() => {
     loadWorkout();
-  }, [id]);
+  }, [id, lang]);
 
   const loadWorkout = async () => {
     setLoading(true);
@@ -58,7 +57,6 @@ export default function WorkoutDetail() {
       setAnalysis(analysisRes.data);
     } catch (error) {
       console.error("Failed to load workout:", error);
-      // Try just the workout if analysis fails
       try {
         const res = await axios.get(`${API}/workouts/${id}`);
         setWorkout(res.data);
@@ -67,18 +65,6 @@ export default function WorkoutDetail() {
       }
     } finally {
       setLoading(false);
-    }
-  };
-
-  const refreshAnalysis = async () => {
-    setAnalyzing(true);
-    try {
-      const res = await axios.get(`${API}/coach/workout-analysis/${id}?language=${lang}`);
-      setAnalysis(res.data);
-    } catch (error) {
-      console.error("Analysis failed:", error);
-    } finally {
-      setAnalyzing(false);
     }
   };
 
@@ -117,29 +103,36 @@ export default function WorkoutDetail() {
     { weekday: "short", month: "short", day: "numeric" }
   );
 
+  // Session type styling
+  const getSessionTypeStyle = (label) => {
+    if (label === "hard") return "text-chart-1 bg-chart-1/10";
+    if (label === "easy") return "text-chart-2 bg-chart-2/10";
+    return "text-chart-3 bg-chart-3/10";
+  };
+
   return (
     <div className="p-4 pb-24" data-testid="workout-detail">
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-3">
         <Link to="/" className="text-muted-foreground hover:text-foreground">
           <ArrowLeft className="w-5 h-5" />
         </Link>
         <div className="flex items-center gap-2">
           <Icon className="w-4 h-4 text-muted-foreground" />
-          <span className="font-mono text-xs uppercase text-muted-foreground">{typeLabel}</span>
+          <span className="font-mono text-[10px] uppercase text-muted-foreground">{typeLabel}</span>
         </div>
-        <span className="font-mono text-xs text-muted-foreground">{dateStr}</span>
+        <span className="font-mono text-[10px] text-muted-foreground">{dateStr}</span>
       </div>
 
       {/* Workout Title */}
-      <h1 className="font-heading text-lg uppercase tracking-tight font-bold mb-4 leading-tight">
+      <h1 className="font-heading text-base uppercase tracking-tight font-bold mb-4 leading-tight">
         {workout.name}
       </h1>
 
-      {/* Coach Summary */}
+      {/* 1) Coach Summary - Top */}
       {analysis?.coach_summary && (
-        <Card className="bg-card border-border mb-4">
-          <CardContent className="p-4">
+        <Card className="bg-card border-border mb-3">
+          <CardContent className="p-3">
             <p className="font-mono text-sm leading-relaxed" data-testid="coach-summary">
               {analysis.coach_summary}
             </p>
@@ -147,64 +140,95 @@ export default function WorkoutDetail() {
         </Card>
       )}
 
-      {/* Signal Cards */}
-      <div className="grid grid-cols-1 gap-3 mb-4">
-        {/* Intensity Card */}
+      {/* 2) Session Snapshot - 3 Cards */}
+      <div className="grid grid-cols-3 gap-2 mb-3">
+        {/* Card A - Intensity */}
         {analysis?.intensity && (
-          <SignalCard
-            icon={Zap}
-            title={t("analysis.intensity")}
-            items={[
-              { label: workout.type === "run" ? t("analysis.pace") : t("analysis.speed"), value: analysis.intensity.pace },
-              { label: t("analysis.avgHr"), value: analysis.intensity.avg_hr ? `${analysis.intensity.avg_hr} bpm` : null },
-            ]}
-            badge={analysis.intensity.label !== "normal" ? t(`analysis.labels.${analysis.intensity.label}`) : null}
-            badgeColor={analysis.intensity.label === "above_usual" ? "text-chart-1" : "text-chart-2"}
-          />
+          <Card className="bg-card border-border">
+            <CardContent className="p-2">
+              <div className="flex items-center gap-1 mb-1">
+                <Zap className="w-3 h-3 text-muted-foreground" />
+                <span className="font-mono text-[8px] uppercase tracking-widest text-muted-foreground">
+                  {t("analysis.intensity")}
+                </span>
+              </div>
+              <p className="font-mono text-xs font-semibold leading-tight">
+                {analysis.intensity.pace || "--"}
+              </p>
+              {analysis.intensity.avg_hr && (
+                <p className="font-mono text-[10px] text-muted-foreground flex items-center gap-1">
+                  <Heart className="w-2.5 h-2.5" />
+                  {analysis.intensity.avg_hr}
+                </p>
+              )}
+              {analysis.intensity.label !== "normal" && (
+                <p className={`font-mono text-[9px] mt-1 ${
+                  analysis.intensity.label === "above_usual" ? "text-chart-1" : "text-chart-2"
+                }`}>
+                  {t(`analysis.labels.${analysis.intensity.label}`)}
+                </p>
+              )}
+            </CardContent>
+          </Card>
         )}
 
-        {/* Load Card */}
+        {/* Card B - Load */}
         {analysis?.load && (
-          <SignalCard
-            icon={Scale}
-            title={t("analysis.load")}
-            items={[
-              { label: t("dashboard.distance"), value: `${analysis.load.distance_km} km` },
-              { label: t("dashboard.duration"), value: formatDuration(analysis.load.duration_min) },
-            ]}
-            badge={analysis.load.vs_baseline_pct !== 0 ? (
-              <span className="flex items-center gap-1">
-                {analysis.load.direction === "up" && <TrendingUp className="w-3 h-3" />}
-                {analysis.load.direction === "down" && <TrendingDown className="w-3 h-3" />}
-                {analysis.load.direction === "stable" && <Minus className="w-3 h-3" />}
-                {analysis.load.vs_baseline_pct > 0 ? "+" : ""}{analysis.load.vs_baseline_pct}%
-              </span>
-            ) : null}
-            badgeColor={
-              analysis.load.direction === "up" ? "text-chart-1" : 
-              analysis.load.direction === "down" ? "text-chart-4" : "text-chart-2"
-            }
-          />
+          <Card className="bg-card border-border">
+            <CardContent className="p-2">
+              <div className="flex items-center gap-1 mb-1">
+                <Scale className="w-3 h-3 text-muted-foreground" />
+                <span className="font-mono text-[8px] uppercase tracking-widest text-muted-foreground">
+                  {t("analysis.load")}
+                </span>
+              </div>
+              <p className="font-mono text-xs font-semibold leading-tight">
+                {analysis.load.distance_km} km
+              </p>
+              <p className="font-mono text-[10px] text-muted-foreground">
+                {formatDuration(analysis.load.duration_min)}
+              </p>
+              {analysis.load.direction !== "stable" && (
+                <p className={`font-mono text-[9px] mt-1 flex items-center gap-0.5 ${
+                  analysis.load.direction === "up" ? "text-chart-1" : "text-chart-4"
+                }`}>
+                  {analysis.load.direction === "up" ? (
+                    <TrendingUp className="w-2.5 h-2.5" />
+                  ) : (
+                    <TrendingDown className="w-2.5 h-2.5" />
+                  )}
+                  {t(`analysis.load_${analysis.load.direction}`)}
+                </p>
+              )}
+            </CardContent>
+          </Card>
         )}
 
-        {/* Comparison Card */}
-        {analysis?.comparison && (analysis.comparison.pace_delta || analysis.comparison.hr_delta) && (
-          <SignalCard
-            icon={GitCompare}
-            title={t("analysis.comparison")}
-            items={[
-              analysis.comparison.pace_delta ? { label: t("analysis.paceDelta"), value: analysis.comparison.pace_delta } : null,
-              analysis.comparison.hr_delta ? { label: t("analysis.hrDelta"), value: analysis.comparison.hr_delta } : null,
-            ].filter(Boolean)}
-          />
+        {/* Card C - Type */}
+        {analysis?.session_type && (
+          <Card className="bg-card border-border">
+            <CardContent className="p-2">
+              <div className="flex items-center gap-1 mb-1">
+                <Activity className="w-3 h-3 text-muted-foreground" />
+                <span className="font-mono text-[8px] uppercase tracking-widest text-muted-foreground">
+                  {t("analysis.type")}
+                </span>
+              </div>
+              <div className={`inline-block px-2 py-1 rounded-sm ${getSessionTypeStyle(analysis.session_type.label)}`}>
+                <p className="font-mono text-xs font-semibold">
+                  {t(`analysis.session_types.${analysis.session_type.label}`)}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
         )}
       </div>
 
-      {/* Coach Insight */}
+      {/* 3) Coach Insight */}
       {analysis?.insight && (
-        <Card className="bg-card border-border mb-4">
-          <CardContent className="p-4">
-            <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-2">
+        <Card className="bg-card border-border mb-3">
+          <CardContent className="p-3">
+            <p className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground mb-1.5">
               {t("analysis.coachInsight")}
             </p>
             <p className="font-mono text-xs text-muted-foreground leading-relaxed" data-testid="coach-insight">
@@ -214,10 +238,10 @@ export default function WorkoutDetail() {
         </Card>
       )}
 
-      {/* Guidance */}
+      {/* 4) Guidance (Optional) */}
       {analysis?.guidance && (
-        <Card className="bg-primary/5 border-primary/20 mb-4">
-          <CardContent className="p-4">
+        <Card className="bg-primary/5 border-primary/20 mb-3">
+          <CardContent className="p-3">
             <p className="font-mono text-xs text-primary leading-relaxed" data-testid="guidance">
               {analysis.guidance}
             </p>
@@ -225,55 +249,25 @@ export default function WorkoutDetail() {
         </Card>
       )}
 
-      {/* Actions */}
-      <div className="space-y-2 mt-6">
+      {/* 5) Actions */}
+      <div className="space-y-2 mt-4">
         <Button
           onClick={goToDeepAnalysis}
           data-testid="deep-analysis-btn"
-          className="w-full bg-primary text-white hover:bg-primary/90 rounded-none h-11 font-mono text-xs uppercase tracking-wider flex items-center justify-center gap-2"
+          className="w-full bg-primary text-white hover:bg-primary/90 rounded-none h-10 font-mono text-xs uppercase tracking-wider flex items-center justify-center gap-2"
         >
-          <MessageSquare className="w-4 h-4" />
-          {t("analysis.viewFullAnalysis")}
+          <MessageSquare className="w-3.5 h-3.5" />
+          {t("analysis.viewDetailedAnalysis")}
         </Button>
         <Button
           onClick={goToAskCoach}
           variant="ghost"
           data-testid="ask-coach-btn"
-          className="w-full text-muted-foreground hover:text-foreground rounded-none h-10 font-mono text-xs uppercase tracking-wider"
+          className="w-full text-muted-foreground hover:text-foreground rounded-none h-9 font-mono text-[11px] uppercase tracking-wider"
         >
           {t("analysis.askCoach")}
         </Button>
       </div>
     </div>
-  );
-}
-
-function SignalCard({ icon: Icon, title, items, badge, badgeColor }) {
-  return (
-    <Card className="bg-card border-border">
-      <CardContent className="p-3">
-        <div className="flex items-start justify-between">
-          <div className="flex items-center gap-2 mb-2">
-            <Icon className="w-4 h-4 text-muted-foreground" />
-            <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-              {title}
-            </span>
-          </div>
-          {badge && (
-            <span className={`font-mono text-xs font-semibold ${badgeColor || ""}`}>
-              {badge}
-            </span>
-          )}
-        </div>
-        <div className="flex items-center gap-4">
-          {items.map((item, idx) => item && (
-            <div key={idx}>
-              <p className="font-mono text-sm font-semibold">{item.value || "--"}</p>
-              <p className="font-mono text-[9px] text-muted-foreground uppercase">{item.label}</p>
-            </div>
-          ))}
-        </div>
-      </CardContent>
-    </Card>
   );
 }
