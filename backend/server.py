@@ -1835,7 +1835,7 @@ async def get_latest_digest(user_id: str = "default"):
 
 # ========== MOBILE-FIRST WORKOUT ANALYSIS ==========
 
-MOBILE_ANALYSIS_PROMPT_EN = """Analyze this workout for a mobile screen. Be extremely concise.
+MOBILE_ANALYSIS_PROMPT_EN = """Analyze this workout for a mobile coach view. Be extremely concise.
 
 WORKOUT DATA:
 {workout_data}
@@ -1845,20 +1845,19 @@ BASELINE (last 14 days, same type):
 
 Respond in this EXACT JSON format only:
 {{
-  "coach_summary": "<ONE sentence, max 20 words. Plain language comparing this session to recent baseline. Example: 'More intense and longer than your recent standard.'>",
-  "insight": "<Max 2 short sentences. No jargon. Calm, factual observation about this workout pattern.>",
-  "guidance": "<ONE short suggestion if relevant, else null. Soft language, no orders. Example: 'An easy session would help absorb this load.'>"
+  "coach_summary": "<ONE sentence, max 18 words. Plain language, NO numbers. Explain what this session was compared to recent habits. Example: 'Noticeably more intense and longer than your usual rhythm.'>",
+  "insight": "<Max 2 SHORT sentences. No jargon (no Z2/Z4, no physiology). Example: 'This session combines volume and intensity. Effective, but more demanding for recovery.'>",
+  "guidance": "<ONE suggestion if session is unusually intense, else null. Soft wording. Example: 'An easy outing would help stabilize the rest of the week.'>"
 }}
 
 Rules:
-- coach_summary: ONE sentence, max 20 words, plain language
-- insight: max 2 sentences, no physiology jargon, factual
-- guidance: ONE suggestion or null if not relevant
-- No motivation, no stars, no markdown
-- If unusually intense: suggest recovery, not performance
+- coach_summary: ONE sentence, max 18 words, NO numbers, plain language
+- insight: max 2 SHORT sentences, no jargon, no zones, no physiology terms
+- guidance: ONE suggestion or null, only if unusually intense
+- No stars, no markdown, no motivation
 - Calm, coach-like tone"""
 
-MOBILE_ANALYSIS_PROMPT_FR = """Analyse cette seance pour un ecran mobile. Sois extremement concis.
+MOBILE_ANALYSIS_PROMPT_FR = """Analyse cette seance pour une vue coach mobile. Sois extremement concis.
 
 DONNEES DE LA SEANCE:
 {workout_data}
@@ -1868,17 +1867,16 @@ BASELINE (14 derniers jours, meme type):
 
 Reponds UNIQUEMENT dans ce format JSON exact:
 {{
-  "coach_summary": "<UNE phrase, max 20 mots. Langage simple comparant cette seance a la baseline recente. Exemple: 'Seance plus intense et plus longue que ton standard recent.'>",
-  "insight": "<Max 2 phrases courtes. Pas de jargon. Observation calme et factuelle sur cette seance.>",
-  "guidance": "<UNE suggestion courte si pertinent, sinon null. Langage doux, pas d'ordres. Exemple: 'Une seance facile aidera a absorber cette charge.'>"
+  "coach_summary": "<UNE phrase, max 18 mots. Langage simple, PAS de chiffres. Explique ce qu'etait cette seance par rapport aux habitudes recentes. Exemple: 'Seance nettement plus intense et plus longue que ton rythme habituel.'>",
+  "insight": "<Max 2 phrases COURTES. Pas de jargon (pas de Z2/Z4, pas de physiologie). Exemple: 'Cette seance regroupe volume et intensite. C'est efficace, mais plus exigeant pour la recuperation.'>",
+  "guidance": "<UNE suggestion si seance inhabituellement intense, sinon null. Formulation douce. Exemple: 'Une sortie facile aidera a stabiliser la suite de la semaine.'>"
 }}
 
 Regles:
-- coach_summary: UNE phrase, max 20 mots, langage simple
-- insight: max 2 phrases, pas de jargon physiologique, factuel
-- guidance: UNE suggestion ou null si non pertinent
-- Pas de motivation, pas d'etoiles, pas de markdown
-- Si intensite inhabituelle: suggerer recuperation, pas performance
+- coach_summary: UNE phrase, max 18 mots, PAS de chiffres, langage simple
+- insight: max 2 phrases COURTES, pas de jargon, pas de zones, pas de termes physiologiques
+- guidance: UNE suggestion ou null, seulement si inhabituellement intense
+- Pas d'etoiles, pas de markdown, pas de motivation
 - Ton calme, de coach"""
 
 
@@ -1887,7 +1885,7 @@ class MobileAnalysisResponse(BaseModel):
     coach_summary: str
     intensity: dict
     load: dict
-    comparison: dict
+    session_type: dict
     insight: Optional[str] = None
     guidance: Optional[str] = None
 
@@ -1899,7 +1897,6 @@ def calculate_mobile_signals(workout: dict, baseline: dict) -> dict:
     # Intensity card
     intensity = {
         "pace": None,
-        "pace_label": None,
         "avg_hr": workout.get("avg_heart_rate"),
         "label": "normal"
     }
@@ -1915,13 +1912,16 @@ def calculate_mobile_signals(workout: dict, baseline: dict) -> dict:
         if speed:
             intensity["pace"] = f"{speed:.1f} km/h"
     
-    # Compare to baseline
-    if baseline and baseline.get("avg_heart_rate"):
-        hr_diff = (workout.get("avg_heart_rate", 0) - baseline["avg_heart_rate"]) / baseline["avg_heart_rate"] * 100
-        if hr_diff > 5:
+    # Compare HR to baseline for intensity label
+    hr_score = 0
+    if baseline and baseline.get("avg_heart_rate") and workout.get("avg_heart_rate"):
+        hr_diff_pct = (workout["avg_heart_rate"] - baseline["avg_heart_rate"]) / baseline["avg_heart_rate"] * 100
+        if hr_diff_pct > 5:
             intensity["label"] = "above_usual"
-        elif hr_diff < -5:
+            hr_score = 1
+        elif hr_diff_pct < -5:
             intensity["label"] = "below_usual"
+            hr_score = -1
     
     # Load card
     distance = workout.get("distance_km", 0)
@@ -1930,41 +1930,51 @@ def calculate_mobile_signals(workout: dict, baseline: dict) -> dict:
     load = {
         "distance_km": round(distance, 1),
         "duration_min": duration,
-        "vs_baseline_pct": 0,
         "direction": "stable"
     }
     
+    load_score = 0
     if baseline and baseline.get("avg_distance_km"):
         dist_diff = (distance - baseline["avg_distance_km"]) / baseline["avg_distance_km"] * 100
-        load["vs_baseline_pct"] = round(dist_diff)
-        if dist_diff > 10:
+        if dist_diff > 15:
             load["direction"] = "up"
-        elif dist_diff < -10:
+            load_score = 1
+        elif dist_diff < -15:
             load["direction"] = "down"
+            load_score = -1
     
-    # Comparison card
-    comparison = {
-        "pace_delta": None,
-        "hr_delta": None
-    }
+    # Session Type card (Easy / Sustained / Hard)
+    # Based on HR intensity + load combined
+    combined_score = hr_score + load_score
     
-    if baseline:
-        if w_type == "run" and baseline.get("avg_pace") and workout.get("avg_pace_min_km"):
-            pace_diff = workout["avg_pace_min_km"] - baseline["avg_pace"]
-            if abs(pace_diff) > 0.05:
-                sign = "+" if pace_diff > 0 else ""
-                comparison["pace_delta"] = f"{sign}{pace_diff:.2f}/km"
+    if combined_score >= 2:
+        session_type_label = "hard"
+    elif combined_score <= -1:
+        session_type_label = "easy"
+    elif hr_score == 1 or load_score == 1:
+        session_type_label = "sustained"
+    else:
+        session_type_label = "easy" if hr_score == -1 else "sustained"
+    
+    # Also check zone distribution if available
+    zones = workout.get("effort_zone_distribution", {})
+    if zones:
+        hard_zones = (zones.get("z4", 0) or 0) + (zones.get("z5", 0) or 0)
+        easy_zones = (zones.get("z1", 0) or 0) + (zones.get("z2", 0) or 0)
         
-        if baseline.get("avg_heart_rate") and workout.get("avg_heart_rate"):
-            hr_diff = workout["avg_heart_rate"] - baseline["avg_heart_rate"]
-            if abs(hr_diff) > 2:
-                sign = "+" if hr_diff > 0 else ""
-                comparison["hr_delta"] = f"{sign}{int(hr_diff)} bpm"
+        if hard_zones > 30:
+            session_type_label = "hard"
+        elif easy_zones > 80:
+            session_type_label = "easy"
+    
+    session_type = {
+        "label": session_type_label
+    }
     
     return {
         "intensity": intensity,
         "load": load,
-        "comparison": comparison
+        "session_type": session_type
     }
 
 
