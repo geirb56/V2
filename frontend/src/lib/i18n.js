@@ -122,6 +122,29 @@ export const translations = {
       workouts: "Imported",
     },
     
+    // Weekly Digest
+    digest: {
+      title: "Weekly Digest",
+      generating: "Generating digest...",
+      noData: "No training data this week.",
+      sessions: "Sessions",
+      km: "KM",
+      hours: "Hours",
+      zoneDistribution: "Effort Distribution",
+      coachInsights: "Coach Notes",
+      deepDive: "View Full Analysis",
+      signals: {
+        load: "Volume",
+        intensity: "Intensity",
+        consistency: "Consistency",
+      },
+      intensity: {
+        hard: "High",
+        easy: "Easy",
+        balanced: "Balanced",
+      },
+    },
+    
     // Common
     common: {
       loading: "Loading...",
