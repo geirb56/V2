@@ -35,9 +35,12 @@ CardioCoach is an elite endurance coaching app specialized in running, cycling, 
 - Full OAuth 2.0 flow for Strava API
 - Backend endpoints: `/api/strava/status`, `/authorize`, `/callback`, `/sync`, `/disconnect`
 - Generic "Data Sync" UI (no Strava/Garmin branding visible)
-- Token refresh handling
-- Import running and cycling activities only
-- **Status**: Placeholder - requires real STRAVA_CLIENT_ID and STRAVA_CLIENT_SECRET
+- Token refresh handling for expired tokens
+- Import running and cycling activities only (up to 300 activities)
+- Auto-sync triggered after successful connection
+- Activities stored in MongoDB with `data_source: "strava"`
+- **Ready for credentials**: Add `STRAVA_CLIENT_ID` and `STRAVA_CLIENT_SECRET` to `/app/backend/.env`
+- **Redirect URI**: `https://cardiocoach-1.preview.emergentagent.com/api/strava/callback`
 
 ### Phase 9 - Weekly Digest + Executive Summary (Feb 3, 2026) ✅
 **Mobile-first, visual-first design - readable in under 10 seconds**
