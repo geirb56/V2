@@ -286,6 +286,29 @@ export const translations = {
       workouts: "Importees",
     },
     
+    // Weekly Digest
+    digest: {
+      title: "Digest Hebdo",
+      generating: "Generation du digest...",
+      noData: "Aucune donnee cette semaine.",
+      sessions: "Seances",
+      km: "KM",
+      hours: "Heures",
+      zoneDistribution: "Distribution de l'effort",
+      coachInsights: "Notes du Coach",
+      deepDive: "Voir l'analyse complete",
+      signals: {
+        load: "Volume",
+        intensity: "Intensite",
+        consistency: "Regularite",
+      },
+      intensity: {
+        hard: "Elevee",
+        easy: "Legere",
+        balanced: "Equilibree",
+      },
+    },
+    
     // Common
     common: {
       loading: "Chargement...",
