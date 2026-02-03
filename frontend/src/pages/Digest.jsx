@@ -225,20 +225,11 @@ export default function Digest() {
               {t("digest.zoneDistribution")}
             </p>
             <div className="flex h-3 rounded-sm overflow-hidden">
-              {Object.entries(digest.metrics.zone_distribution).map(([zone, pct]) => (
-                <div
-                  key={zone}
-                  style={{ width: `${pct}%` }}
-                  className={`
-                    ${zone === "z1" ? "bg-chart-2/40" : ""}
-                    ${zone === "z2" ? "bg-chart-2" : ""}
-                    ${zone === "z3" ? "bg-chart-3" : ""}
-                    ${zone === "z4" ? "bg-chart-1/80" : ""}
-                    ${zone === "z5" ? "bg-chart-1" : ""}
-                  `}
-                  title={`${zone.toUpperCase()}: ${pct}%`}
-                />
-              ))}
+              <div style={{ width: `${digest.metrics.zone_distribution.z1 || 0}%` }} className="bg-chart-2/40" title={`Z1: ${digest.metrics.zone_distribution.z1}%`} />
+              <div style={{ width: `${digest.metrics.zone_distribution.z2 || 0}%` }} className="bg-chart-2" title={`Z2: ${digest.metrics.zone_distribution.z2}%`} />
+              <div style={{ width: `${digest.metrics.zone_distribution.z3 || 0}%` }} className="bg-chart-3" title={`Z3: ${digest.metrics.zone_distribution.z3}%`} />
+              <div style={{ width: `${digest.metrics.zone_distribution.z4 || 0}%` }} className="bg-chart-1/80" title={`Z4: ${digest.metrics.zone_distribution.z4}%`} />
+              <div style={{ width: `${digest.metrics.zone_distribution.z5 || 0}%` }} className="bg-chart-1" title={`Z5: ${digest.metrics.zone_distribution.z5}%`} />
             </div>
             <div className="flex justify-between mt-2">
               <span className="font-mono text-[8px] text-muted-foreground">Z1</span>
