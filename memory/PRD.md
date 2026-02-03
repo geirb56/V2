@@ -86,45 +86,47 @@ CardioCoach is an elite endurance coaching app specialized in running, cycling, 
 - ZoneBar and SignalCard components
 - Full EN/FR translations
 
-### Phase 10 - Mobile-First Workout Analysis (Feb 3, 2026) ✅
-**Redesigned workout detail screen for phone readability (<10 seconds)**
+### Phase 10 - Mobile Coach View (Feb 3, 2026) ✅
+**Redesigned workout detail as "coach-in-your-pocket" experience**
 
 **Structure (Top → Bottom):**
-1. **Coach Summary** (top card)
-   - 1 short sentence, max 20 words
-   - Plain language comparing session to recent baseline
-   - Example: "Longer and a bit harder than your recent runs."
+1. **Coach Sentence** (top card)
+   - 1 sentence, max 18-20 words
+   - Plain language, NO numbers overload
+   - Explains what this session was compared to recent habits
+   - Example: "Longer and a bit harder than what you've been doing lately."
 
-2. **Signal Cards** (3 compact cards)
+2. **Session Snapshot** (3 compact cards in row)
    - **Intensity**: Pace + Avg HR + Label (Above/Below usual)
-   - **Load**: Distance + Duration + vs Baseline (% ↑↓)
-   - **Comparison**: Pace delta + HR delta vs baseline
+   - **Load**: Distance + Duration + Direction (↑ Higher / ↓ Lower)
+   - **Type**: Easy / Sustained / Hard (color-coded badge)
 
 3. **Coach Insight** (optional)
    - Max 2 short sentences
-   - No jargon, calm factual tone
-   - Example: "You ran 2.8 km farther than your recent average."
+   - No jargon (no Z2/Z4, no physiology terms)
+   - Example: "You combined volume and intensity. More demanding for recovery."
 
 4. **Guidance** (optional)
-   - ONE short suggestion if relevant
-   - Soft language, no orders
-   - Example: "An easy run next would help you recover."
+   - Only if session is unusually intense
+   - ONE suggestion, soft wording
+   - Example: "An easy outing would help stabilize the rest of the week."
 
 5. **Actions** (bottom)
-   - Primary: "View full analysis" → Coach chat
+   - Primary: "View detailed analysis" → Coach chat with deep analysis
    - Secondary: "Ask the coach" → Coach chat
 
 **Backend:**
-- `GET /api/coach/workout-analysis/{workout_id}` - Mobile analysis
-- Calculates signals from workout + 14-day baseline
-- AI generates coach_summary, insight, guidance
+- `GET /api/coach/workout-analysis/{workout_id}` - Mobile coach view
+- Returns: coach_summary, intensity, load, session_type, insight, guidance
+- Session type calculated from HR + load + zone distribution
 
 **Design Rules:**
+- Readable in under 10 seconds
+- Feels coached, not analyzed
 - One idea per block
 - Max 2 lines per text block
-- White space > density
 - No stars, no heavy markdown
-- Mobile-first (iPhone 13 size optimized)
+- White space > density
 
 ### Backend API Endpoints
 - `GET /api/workouts` - List all workouts
