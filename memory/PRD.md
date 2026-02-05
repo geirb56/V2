@@ -112,21 +112,53 @@ CardioCoach is an elite endurance coaching app specialized in running, cycling, 
    - Example: "An easy outing would help stabilize the rest of the week."
 
 5. **Actions** (bottom)
-   - Primary: "View detailed analysis" → Coach chat with deep analysis
+   - Primary: "View detailed analysis" → Card-based detailed view
    - Secondary: "Ask the coach" → Coach chat
 
-**Backend:**
-- `GET /api/coach/workout-analysis/{workout_id}` - Mobile coach view
-- Returns: coach_summary, intensity, load, session_type, insight, guidance
-- Session type calculated from HR + load + zone distribution
+### Phase 11 - Card-Based Detailed Analysis (Feb 5, 2026) ✅
+**Transformed detailed analysis from dense report to mobile card experience**
+
+**Route:** `/workout/{id}/analysis`
+
+**Structure (6 cards):**
+1. **Header - Session Context**
+   - Session name
+   - 1 sentence max context
+   - Example: "Sustained outing, noticeably more intense than your recent routine."
+
+2. **Execution Card** (3 columns)
+   - Intensity: Easy / Moderate / Sustained (color-coded badge)
+   - Volume: Usual / Longer / One-off peak
+   - Regularity: Stable / Unknown / Variable
+
+3. **What It Means Card**
+   - 2-3 short sentences
+   - Simple language, no jargon
+   - Explains the main signal (zone change, load spike)
+
+4. **Recovery Card** (orange highlight)
+   - 1 key message only
+   - Neutral, non-alarmist tone
+   - Example: "This session creates higher stress. The next 24-48h matter."
+
+5. **Coach Advice Card** (blue highlight)
+   - 1 clear actionable recommendation
+   - Never more than one
+   - Example: "Next session: strict easy, recovery priority."
+
+6. **Go Further Accordion** (collapsed by default)
+   - HR/pace deltas vs baseline
+   - Zone breakdown
+   - Physiological nuances
+   - Can be ignored without losing comprehension
 
 **Design Rules:**
-- Readable in under 10 seconds
-- Feels coached, not analyzed
-- One idea per block
-- Max 2 lines per text block
-- No stars, no heavy markdown
-- White space > density
+- Scannable in <10 seconds
+- Short sentences only
+- Clear vocabulary
+- Zero over-analysis visible by default
+- Each card fits on mobile screen
+- 100% EN or 100% FR (no mixing)
 
 ### Backend API Endpoints
 - `GET /api/workouts` - List all workouts
