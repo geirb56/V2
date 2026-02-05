@@ -5,6 +5,7 @@ import { LanguageProvider } from "@/context/LanguageContext";
 import Dashboard from "@/pages/Dashboard";
 import Coach from "@/pages/Coach";
 import WorkoutDetail from "@/pages/WorkoutDetail";
+import DetailedAnalysis from "@/pages/DetailedAnalysis";
 import Progress from "@/pages/Progress";
 import Guidance from "@/pages/Guidance";
 import Digest from "@/pages/Digest";
@@ -22,6 +23,7 @@ function App() {
               <Route index element={<Dashboard />} />
               <Route path="coach" element={<Coach />} />
               <Route path="workout/:id" element={<WorkoutDetail />} />
+              <Route path="workout/:id/analysis" element={<DetailedAnalysis />} />
               <Route path="progress" element={<Progress />} />
               <Route path="guidance" element={<Guidance />} />
               <Route path="digest" element={<Digest />} />
