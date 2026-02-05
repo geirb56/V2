@@ -178,15 +178,15 @@ export default function DetailedAnalysis() {
 
       {/* 4) CARD - RISK & RECOVERY */}
       {analysis.recovery?.text && (
-        <Card className="bg-chart-1/5 border-chart-1/20 mb-3">
+        <Card className="bg-orange-500/5 border-orange-500/20 mb-3">
           <CardContent className="p-3">
             <div className="flex items-center gap-2 mb-2">
-              <AlertCircle className="w-4 h-4 text-chart-1" />
-              <span className="font-mono text-[10px] uppercase tracking-widest text-chart-1">
+              <AlertCircle className="w-4 h-4 text-orange-400" />
+              <span className="font-mono text-[10px] uppercase tracking-widest text-orange-400">
                 {t("detailedAnalysis.recovery")}
               </span>
             </div>
-            <p className="font-mono text-xs text-chart-1/90 leading-relaxed" data-testid="recovery-text">
+            <p className="font-mono text-xs text-orange-300 leading-relaxed" data-testid="recovery-text">
               {analysis.recovery.text}
             </p>
           </CardContent>
