@@ -13,16 +13,25 @@ export const translations = {
     
     // Dashboard
     dashboard: {
-      title: "Training Log",
-      totalWorkouts: "Total Workouts",
-      distance: "Distance",
-      duration: "Duration",
-      avgHr: "Avg HR",
-      hours: "hours",
+      title: "Dashboard",
+      thisWeek: "This Week",
+      lastMonth: "Last 30 Days",
+      sessions: "Sessions",
       km: "km",
-      bpm: "bpm",
+      activeWeeks: "Active Weeks",
       recentWorkouts: "Recent Workouts",
       viewAll: "View All",
+      load: {
+        label: "Load",
+        low: "Low",
+        balanced: "Balanced",
+        high: "High",
+      },
+      trend: {
+        up: "Up",
+        stable: "Stable",
+        down: "Down",
+      },
     },
     
     // Workout types
