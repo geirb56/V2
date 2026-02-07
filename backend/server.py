@@ -1125,9 +1125,9 @@ async def root():
 
 @api_router.get("/workouts", response_model=List[dict])
 async def get_workouts():
-    """Get all workouts"""
+    """Get all workouts, sorted by date descending"""
     # Try to get from DB first, fall back to mock data
-    workouts = await db.workouts.find({}, {"_id": 0}).to_list(100)
+    workouts = await db.workouts.find({}, {"_id": 0}).sort("date", -1).to_list(200)
     if not workouts:
         workouts = get_mock_workouts()
     return workouts
