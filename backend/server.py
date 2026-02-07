@@ -1205,21 +1205,6 @@ Mauvais (interdit):
 
 100% FRANCAIS uniquement."""
 
-Exemples:
-- "Volume bien gere cette semaine, garde une sortie facile avant d'intensifier."
-- "Volume faible cette semaine, bon moment pour relancer progressivement."
-- "Hausse de volume notable, attention a enchainer trop d'intensite."
-- "Entrainement regulier, maintiens ce rythme pour une progression solide."
-
-Regles:
-- UNE phrase seulement
-- Max 15 mots
-- Orientee action
-- Ton calme, de coach
-- Pas de chiffres
-- Pas de stats
-- 100% FRANCAIS"""
-
 
 class DashboardInsightResponse(BaseModel):
     coach_insight: str
