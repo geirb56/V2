@@ -226,16 +226,25 @@ export const translations = {
     
     // Dashboard
     dashboard: {
-      title: "Journal d'entrainement",
-      totalWorkouts: "Total seances",
-      distance: "Distance",
-      duration: "Duree",
-      avgHr: "FC Moy",
-      hours: "heures",
+      title: "Tableau de bord",
+      thisWeek: "Cette semaine",
+      lastMonth: "30 derniers jours",
+      sessions: "Séances",
       km: "km",
-      bpm: "bpm",
-      recentWorkouts: "Seances recentes",
+      activeWeeks: "Semaines actives",
+      recentWorkouts: "Séances récentes",
       viewAll: "Tout voir",
+      load: {
+        label: "Charge",
+        low: "Faible",
+        balanced: "Équilibrée",
+        high: "Élevée",
+      },
+      trend: {
+        up: "Hausse",
+        stable: "Stable",
+        down: "Baisse",
+      },
     },
     
     // Workout types
