@@ -40,7 +40,7 @@ CardioCoach is an elite endurance coaching app specialized in running, cycling, 
 - Auto-sync triggered after successful connection
 - Activities stored in MongoDB with `data_source: "strava"`
 - **Ready for credentials**: Add `STRAVA_CLIENT_ID` and `STRAVA_CLIENT_SECRET` to `/app/backend/.env`
-- **Redirect URI**: `https://cardiocoach-1.preview.emergentagent.com/api/strava/callback`
+- **Redirect URI**: `https://endurance-ai-1.preview.emergentagent.com/api/strava/callback`
 
 ### Phase 9 - Weekly Digest + Executive Summary (Feb 3, 2026) ✅
 **Mobile-first, visual-first design - readable in under 10 seconds**
