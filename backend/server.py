@@ -1155,6 +1155,196 @@ async def create_workout(workout: WorkoutCreate):
     return workout_obj
 
 
+# ========== DASHBOARD INSIGHT (DECISION ASSISTANT) ==========
+
+DASHBOARD_INSIGHT_PROMPT_EN = """You are CardioCoach. Generate ONE coach insight for the dashboard.
+
+CURRENT WEEK DATA:
+{week_data}
+
+LAST MONTH DATA:
+{month_data}
+
+Respond with ONLY a single sentence (max 15 words).
+Action-oriented, tells user what to do or what status they're in.
+
+Examples:
+- "Volume well managed this week, keep an easy session before intensifying."
+- "Low volume this week, good time to gradually ramp back up."
+- "Notable volume increase, be careful not to stack too much intensity."
+- "Training consistent, maintain this rhythm for solid progression."
+
+Rules:
+- ONE sentence only
+- Max 15 words
+- Action-oriented
+- Calm, coach-like tone
+- No numbers
+- No stats
+- 100% ENGLISH"""
+
+DASHBOARD_INSIGHT_PROMPT_FR = """Tu es CardioCoach. Genere UN seul conseil coach pour le dashboard.
+
+DONNEES SEMAINE EN COURS:
+{week_data}
+
+DONNEES DERNIER MOIS:
+{month_data}
+
+Reponds avec UNE seule phrase (max 15 mots).
+Orientee action, dit a l'utilisateur quoi faire ou son statut.
+
+Exemples:
+- "Volume bien gere cette semaine, garde une sortie facile avant d'intensifier."
+- "Volume faible cette semaine, bon moment pour relancer progressivement."
+- "Hausse de volume notable, attention a enchainer trop d'intensite."
+- "Entrainement regulier, maintiens ce rythme pour une progression solide."
+
+Regles:
+- UNE phrase seulement
+- Max 15 mots
+- Orientee action
+- Ton calme, de coach
+- Pas de chiffres
+- Pas de stats
+- 100% FRANCAIS"""
+
+
+class DashboardInsightResponse(BaseModel):
+    coach_insight: str
+    week: dict
+    month: dict
+
+
+def calculate_week_stats(workouts: list) -> dict:
+    """Calculate current week statistics"""
+    today = datetime.now(timezone.utc).date()
+    week_start = today - timedelta(days=today.weekday())  # Monday
+    
+    week_workouts = []
+    for w in workouts:
+        try:
+            w_date = datetime.fromisoformat(w.get("date", "").replace("Z", "+00:00").split("T")[0]).date()
+            if week_start <= w_date <= today:
+                week_workouts.append(w)
+        except (ValueError, TypeError):
+            continue
+    
+    total_km = sum(w.get("distance_km", 0) for w in week_workouts)
+    sessions = len(week_workouts)
+    
+    # Load signal based on volume vs typical week
+    if total_km > 80:
+        load_signal = "high"
+    elif total_km > 40:
+        load_signal = "balanced"
+    else:
+        load_signal = "low"
+    
+    return {
+        "sessions": sessions,
+        "volume_km": round(total_km, 1),
+        "load_signal": load_signal
+    }
+
+
+def calculate_month_stats(workouts: list) -> dict:
+    """Calculate last 30 days statistics"""
+    today = datetime.now(timezone.utc).date()
+    month_start = today - timedelta(days=30)
+    prev_month_start = today - timedelta(days=60)
+    
+    current_month = []
+    prev_month = []
+    
+    for w in workouts:
+        try:
+            w_date = datetime.fromisoformat(w.get("date", "").replace("Z", "+00:00").split("T")[0]).date()
+            if month_start <= w_date <= today:
+                current_month.append(w)
+            elif prev_month_start <= w_date < month_start:
+                prev_month.append(w)
+        except (ValueError, TypeError):
+            continue
+    
+    current_km = sum(w.get("distance_km", 0) for w in current_month)
+    prev_km = sum(w.get("distance_km", 0) for w in prev_month)
+    
+    # Active weeks (weeks with at least one workout)
+    active_weeks = len(set(
+        datetime.fromisoformat(w.get("date", "").replace("Z", "+00:00").split("T")[0]).date().isocalendar()[1]
+        for w in current_month if w.get("date")
+    ))
+    
+    # Trend
+    if prev_km > 0:
+        change = (current_km - prev_km) / prev_km * 100
+        if change > 15:
+            trend = "up"
+        elif change < -15:
+            trend = "down"
+        else:
+            trend = "stable"
+    else:
+        trend = "up" if current_km > 0 else "stable"
+    
+    return {
+        "volume_km": round(current_km, 1),
+        "active_weeks": active_weeks,
+        "trend": trend
+    }
+
+
+@api_router.get("/dashboard/insight")
+async def get_dashboard_insight(language: str = "en", user_id: str = "default"):
+    """Get dashboard coach insight with week and month summaries"""
+    # Get workouts
+    all_workouts = await db.workouts.find({}, {"_id": 0}).sort("date", -1).to_list(200)
+    if not all_workouts:
+        all_workouts = get_mock_workouts()
+    
+    # Calculate stats
+    week_stats = calculate_week_stats(all_workouts)
+    month_stats = calculate_month_stats(all_workouts)
+    
+    # Generate AI insight
+    coach_insight = ""
+    
+    if EMERGENT_LLM_KEY:
+        prompt_template = DASHBOARD_INSIGHT_PROMPT_FR if language == "fr" else DASHBOARD_INSIGHT_PROMPT_EN
+        prompt = prompt_template.format(
+            week_data=week_stats,
+            month_data=month_stats
+        )
+        
+        try:
+            chat = LlmChat(
+                api_key=EMERGENT_LLM_KEY,
+                session_id=f"dashboard_insight_{user_id}",
+                system_message="You are a concise coach. ONE sentence only."
+            ).with_model("openai", "gpt-5.2")
+            
+            response = await chat.send_message(UserMessage(text=prompt))
+            coach_insight = response.strip().strip('"').strip("'")
+            
+            # Ensure it's not too long
+            words = coach_insight.split()
+            if len(words) > 18:
+                coach_insight = " ".join(words[:15]) + "."
+                
+        except Exception as e:
+            logger.error(f"Dashboard insight error: {e}")
+            coach_insight = "Training on track." if language == "en" else "Entrainement en cours."
+    else:
+        coach_insight = "Training on track." if language == "en" else "Entrainement en cours."
+    
+    return DashboardInsightResponse(
+        coach_insight=coach_insight,
+        week=week_stats,
+        month=month_stats
+    )
+
+
 @api_router.get("/stats")
 async def get_stats():
     """Get training statistics"""
