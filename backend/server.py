@@ -1457,7 +1457,7 @@ def calculate_month_stats(workouts: list) -> dict:
 
 @api_router.get("/dashboard/insight")
 async def get_dashboard_insight(language: str = "en", user_id: str = "default"):
-    """Get dashboard coach insight with week and month summaries"""
+    """Get dashboard coach insight with week and month summaries and recovery score"""
     # Get workouts
     all_workouts = await db.workouts.find({}, {"_id": 0}).sort("date", -1).to_list(200)
     if not all_workouts:
@@ -1466,6 +1466,9 @@ async def get_dashboard_insight(language: str = "en", user_id: str = "default"):
     # Calculate stats
     week_stats = calculate_week_stats(all_workouts)
     month_stats = calculate_month_stats(all_workouts)
+    
+    # Calculate recovery score
+    recovery_score = calculate_recovery_score(all_workouts, language)
     
     # Generate AI insight
     coach_insight = ""
@@ -1501,7 +1504,8 @@ async def get_dashboard_insight(language: str = "en", user_id: str = "default"):
     return DashboardInsightResponse(
         coach_insight=coach_insight,
         week=week_stats,
-        month=month_stats
+        month=month_stats,
+        recovery_score=recovery_score
     )
 
 
