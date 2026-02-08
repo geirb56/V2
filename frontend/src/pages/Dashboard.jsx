@@ -13,8 +13,11 @@ import {
   Footprints,
   Loader2,
   Lightbulb,
-  Calendar,
-  Scale
+  Scale,
+  Battery,
+  BatteryLow,
+  BatteryMedium,
+  BatteryFull
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -31,6 +34,86 @@ const formatDuration = (minutes) => {
   if (hrs > 0) return `${hrs}h${mins > 0 ? mins : ""}`;
   return `${mins}m`;
 };
+
+// Recovery Score Gauge Component
+function RecoveryGauge({ score, status, phrase }) {
+  const getColor = () => {
+    if (status === "ready") return "text-emerald-400";
+    if (status === "moderate") return "text-amber-400";
+    return "text-red-400";
+  };
+
+  const getBgColor = () => {
+    if (status === "ready") return "bg-emerald-400/10";
+    if (status === "moderate") return "bg-amber-400/10";
+    return "bg-red-400/10";
+  };
+
+  const getIcon = () => {
+    if (status === "ready") return BatteryFull;
+    if (status === "moderate") return BatteryMedium;
+    return BatteryLow;
+  };
+
+  const Icon = getIcon();
+  const circumference = 2 * Math.PI * 36;
+  const progress = (score / 100) * circumference;
+
+  return (
+    <Card className={`border-border ${getBgColor()}`}>
+      <CardContent className="p-4">
+        <div className="flex items-center gap-4">
+          {/* Circular Gauge */}
+          <div className="relative w-20 h-20 flex-shrink-0">
+            <svg className="w-20 h-20 transform -rotate-90" viewBox="0 0 80 80">
+              {/* Background circle */}
+              <circle
+                cx="40"
+                cy="40"
+                r="36"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="6"
+                className="text-muted/30"
+              />
+              {/* Progress circle */}
+              <circle
+                cx="40"
+                cy="40"
+                r="36"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="6"
+                strokeLinecap="round"
+                strokeDasharray={circumference}
+                strokeDashoffset={circumference - progress}
+                className={getColor()}
+              />
+            </svg>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <span className={`font-mono text-xl font-bold ${getColor()}`}>
+                {score}
+              </span>
+            </div>
+          </div>
+
+          {/* Text */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-1">
+              <Icon className={`w-4 h-4 ${getColor()}`} />
+              <span className={`font-mono text-xs uppercase tracking-wider font-semibold ${getColor()}`}>
+                {status === "ready" ? "Ready" : status === "moderate" ? "Moderate" : "Low"}
+              </span>
+            </div>
+            <p className="font-mono text-xs text-muted-foreground leading-relaxed">
+              {phrase}
+            </p>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
 
 export default function Dashboard() {
   const [insight, setInsight] = useState(null);
@@ -64,12 +147,6 @@ export default function Dashboard() {
     return "text-chart-2";
   };
 
-  const getLoadBg = (signal) => {
-    if (signal === "high") return "bg-chart-1/10";
-    if (signal === "low") return "bg-chart-4/10";
-    return "bg-chart-2/10";
-  };
-
   const getTrendIcon = (trend) => {
     if (trend === "up") return TrendingUp;
     if (trend === "down") return TrendingDown;
@@ -91,6 +168,7 @@ export default function Dashboard() {
   }
 
   const TrendIcon = insight?.month ? getTrendIcon(insight.month.trend) : Minus;
+  const recovery = insight?.recovery_score;
 
   return (
     <div className="p-4 pb-24" data-testid="dashboard">
@@ -108,7 +186,21 @@ export default function Dashboard() {
         </Card>
       )}
 
-      {/* 2) CURRENT WEEK - VOLUME FOCUS */}
+      {/* 2) RECOVERY SCORE - NEW */}
+      {recovery && (
+        <div className="mb-4">
+          <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-2">
+            {t("dashboard.recovery")}
+          </p>
+          <RecoveryGauge 
+            score={recovery.score} 
+            status={recovery.status} 
+            phrase={recovery.phrase}
+          />
+        </div>
+      )}
+
+      {/* 3) CURRENT WEEK - VOLUME FOCUS */}
       <div className="mb-4">
         <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-2">
           {t("dashboard.thisWeek")}
@@ -151,7 +243,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* 3) LAST MONTH - CONTEXT ONLY */}
+      {/* 4) LAST MONTH - CONTEXT ONLY */}
       <div className="mb-4">
         <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-2">
           {t("dashboard.lastMonth")}
