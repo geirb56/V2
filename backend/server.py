@@ -1881,9 +1881,11 @@ class WeeklyReviewResponse(BaseModel):
     coach_summary: str  # 1 phrase max - CARTE 1
     coach_reading: str  # 2-3 phrases - CARTE 4
     recommendations: List[str]  # 1-2 actions - CARTE 5
+    recommendations_followup: Optional[str] = None  # Feedback on last week's recommendations
     metrics: dict  # CARTE 3
     comparison: dict  # vs semaine precedente
     signals: List[dict]  # CARTE 2
+    user_goal: Optional[dict] = None  # User's event goal
     generated_at: str
 
 
@@ -1892,15 +1894,18 @@ The user should understand their week in under 1 minute and know what to do next
 
 CURRENT WEEK DATA: {training_data}
 PREVIOUS WEEK DATA: {baseline_data}
+{goal_context}
+{followup_context}
 
 Respond in JSON format only:
 {{
   "coach_summary": "<ONE sentence maximum. Calm, human, expert tone. Example: 'Light but clean week, ideal to restart without creating fatigue.'>",
   "coach_reading": "<2 to 3 sentences ONLY. Put meaning on the numbers. Say what is GOOD and what to WATCH OUT for. Example: 'Volume is up but concentrated in one outing. Acceptable occasionally, but spread it out if you want progress without fatigue.'>",
   "recommendations": [
-    "<1 to 2 clear recommendations. ACTION-oriented. Applicable next week. No conditionals, no options. Example: 'Add a 2nd short and easy outing'>",
+    "<1 to 2 clear recommendations. ACTION-oriented. Applicable next week. No conditionals, no options. If goal exists, tailor to it. Example: 'Add a 2nd short and easy outing'>",
     "<Example: 'Keep a relaxed pace, don't chase speed'>"
-  ]
+  ],
+  "recommendations_followup": "<ONLY if previous recommendations exist: ONE sentence about how the user followed (or not) last week's advice. Be factual, not judgmental. Example: 'You added that second outing as suggested, good consistency.' or 'Volume stayed concentrated despite the advice to spread it.' Leave empty string if no previous recommendations.>"
 }}
 
 STRICTLY FORBIDDEN:
@@ -1926,15 +1931,18 @@ L'utilisateur doit comprendre sa semaine en moins d'1 minute et savoir quoi fair
 
 DONNEES SEMAINE EN COURS: {training_data}
 DONNEES SEMAINE PRECEDENTE: {baseline_data}
+{goal_context}
+{followup_context}
 
 Reponds en format JSON uniquement:
 {{
   "coach_summary": "<UNE phrase maximum. Ton calme, humain, expert. Exemple: 'Semaine legere mais propre, ideale pour relancer sans creer de fatigue.'>",
   "coach_reading": "<2 a 3 phrases UNIQUEMENT. Mets du sens sur les chiffres. Dis ce qui est BIEN et ce qui est A SURVEILLER. Exemple: 'Le volume est en hausse mais concentre sur une seule sortie. Acceptable ponctuellement, mais a lisser si tu veux progresser sans fatigue.'>",
   "recommendations": [
-    "<1 a 2 recommandations claires. Orientees ACTION. Applicables la semaine prochaine. Pas de conditionnel, pas d'options. Exemple: 'Ajouter une 2e sortie courte et facile'>",
+    "<1 a 2 recommandations claires. Orientees ACTION. Applicables la semaine prochaine. Pas de conditionnel, pas d'options. Si objectif existe, adapte-toi. Exemple: 'Ajouter une 2e sortie courte et facile'>",
     "<Exemple: 'Garder l'allure relachee, sans chercher la vitesse'>"
-  ]
+  ],
+  "recommendations_followup": "<UNIQUEMENT si des recommandations precedentes existent: UNE phrase sur comment l'utilisateur a suivi (ou non) les conseils de la semaine derniere. Sois factuel, pas moralisateur. Exemple: 'Tu as ajoute cette deuxieme sortie comme suggere, bonne regularite.' ou 'Le volume est reste concentre malgre le conseil de l'etaler.' Laisse vide si pas de recommandations precedentes.>"
 }}
 
 STRICTEMENT INTERDIT:
