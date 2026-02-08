@@ -42,49 +42,75 @@ CardioCoach is an elite endurance coaching app specialized in running, cycling, 
 - **Ready for credentials**: Add `STRAVA_CLIENT_ID` and `STRAVA_CLIENT_SECRET` to `/app/backend/.env`
 - **Redirect URI**: `https://endurance-ai-1.preview.emergentagent.com/api/strava/callback`
 
-### Phase 9 - Weekly Digest + Executive Summary (Feb 3, 2026) ✅
-**Mobile-first, visual-first design - readable in under 10 seconds**
+### Phase 9 - Weekly Review / Bilan de la semaine (Feb 8, 2026) ✅
+**Complete redesign: "Digest" → "Bilan de la semaine"**
 
-**Structure:**
-1. **Executive Summary** (top)
-   - One short sentence (max ~15 words)
-   - Neutral, factual verdict on the week
-   - Example: "Volume increased versus baseline with balanced intensity distribution."
+**Objective:** Transform the weekly summary into a true coach review that:
+- Is readable in under 1 minute on mobile
+- Makes the user understand their week immediately
+- Tells them what to do next week
 
-2. **Visual Signals Grid** (3 columns)
-   - **Volume**: TrendingUp/Down/Stable icon + percentage vs baseline
-   - **Intensity**: Flame/Activity/Target icon + Easy/Balanced/High label
-   - **Consistency**: Calendar icon + percentage (sessions spread across days)
-   - Color-coded: green (positive), orange (neutral), red (warning)
+**New 6-Card Structure:**
 
-3. **Metrics Bar**
+1. **CARTE 1 - Coach Summary (Synthèse du coach)**
+   - 1 sentence maximum
+   - Calm, human, expert tone
+   - Example: "Light but clean week, ideal to restart without creating fatigue."
+
+2. **CARTE 2 - Visual Signals (Signaux clés)**
+   - Volume: ↑/↓/stable + percentage
+   - Intensity: Easy/Balanced/Sustained
+   - Regularity: Low/Moderate/Good
+   - Readable in <3 seconds
+
+3. **CARTE 3 - Essential Numbers (Chiffres essentiels)**
    - Sessions count
    - Total distance (km)
    - Total duration (hours)
+   - Comparison vs previous week only
 
-4. **Effort Distribution Bar**
-   - Visual zone bar (Z1-Z5) with color gradient
-   - No text, pure visual representation
+4. **CARTE 4 - Coach Reading (Lecture du coach)**
+   - 2-3 sentences maximum
+   - Puts meaning on the numbers
+   - Says what is GOOD and what to WATCH OUT for
 
-5. **Coach Notes** (max 3 insights)
-   - Short technical observations (1-2 lines each)
-   - Calm, technical tone
-   - No motivation, no alarms
+5. **CARTE 5 - Recommendations (Préconisations) - MANDATORY**
+   - 1-2 clear recommendations
+   - ACTION-oriented
+   - Applicable next week
+   - No conditionals, no options
 
-6. **Deep Dive CTA**
-   - "View Full Analysis" button → navigates to /coach
-   - Long-form analysis available only in chat view
+6. **CARTE 6 - Ask Coach (Question au coach) - Optional**
+   - Discrete button: "Ask the coach"
+   - Navigates to Coach Q&A
+
+**Removed:**
+- ❌ "View Full Analysis" button
+- ❌ Zone distribution bar
+- ❌ Old insights list
 
 **Backend:**
-- `GET /api/coach/digest` - Generate weekly digest with AI insights
-- `GET /api/coach/digest/latest` - Get most recent cached digest
-- Compares current week (7 days) to baseline (previous 7 days)
-- AI generates executive summary and insights via GPT-5.2
+- Updated `GET /api/coach/digest` to return new `WeeklyReviewResponse`:
+  - `coach_summary` (1 phrase)
+  - `coach_reading` (2-3 phrases)
+  - `recommendations` (1-2 actions)
+  - `metrics` (sessions, km, hours)
+  - `comparison` (vs last week %)
+  - `signals` (load/intensity/consistency)
 
 **Frontend:**
-- `/digest` route with mobile-first responsive design
-- ZoneBar and SignalCard components
-- Full EN/FR translations
+- Renamed "Digest" → "Review" (EN) / "Bilan" (FR) in navigation
+- Complete rewrite of `/app/frontend/src/pages/Digest.jsx`
+- Updated all translations in `/app/frontend/src/lib/i18n.js`
+
+**AI Prompts:**
+- `WEEKLY_REVIEW_PROMPT_EN/FR` enforce:
+  - 1 sentence coach summary
+  - 2-3 sentence coach reading
+  - 1-2 action-oriented recommendations
+  - No markdown, no jargon, no report-style
+
+**Test Report:** `/app/test_reports/iteration_15.json` (100% pass rate)
 
 ### Phase 10 - Mobile Coach View (Feb 3, 2026) ✅
 **Redesigned workout detail as "coach-in-your-pocket" experience**
