@@ -175,12 +175,23 @@ export const translations = {
       goalDesc: "Set a target event to get personalized recommendations",
       eventName: "Event name",
       eventDate: "Event date",
+      distance: "Distance",
+      targetTime: "Target time",
+      targetTimeDesc: "Leave empty if no specific goal",
       saveGoal: "Save goal",
       deleteGoal: "Delete",
       noGoal: "No goal set",
       goalSaved: "Goal saved",
       goalDeleted: "Goal deleted",
       daysUntil: "days until",
+      targetPace: "Target pace",
+      distances: {
+        "5k": "5 km",
+        "10k": "10 km",
+        "semi": "Half Marathon",
+        "marathon": "Marathon",
+        "ultra": "Ultra Trail"
+      },
     },
     
     // Weekly Review
@@ -415,12 +426,23 @@ export const translations = {
       goalDesc: "Definis un evenement cible pour des recommandations personnalisees",
       eventName: "Nom de l'evenement",
       eventDate: "Date de l'evenement",
+      distance: "Distance",
+      targetTime: "Temps vise",
+      targetTimeDesc: "Laisser vide si pas d'objectif precis",
       saveGoal: "Enregistrer",
       deleteGoal: "Supprimer",
       noGoal: "Aucun objectif defini",
       goalSaved: "Objectif enregistre",
       goalDeleted: "Objectif supprime",
       daysUntil: "jours avant",
+      targetPace: "Allure cible",
+      distances: {
+        "5k": "5 km",
+        "10k": "10 km",
+        "semi": "Semi-marathon",
+        "marathon": "Marathon",
+        "ultra": "Ultra Trail"
+      },
     },
     
     // Weekly Review (Bilan de la semaine)
