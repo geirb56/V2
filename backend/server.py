@@ -1329,18 +1329,55 @@ def calculate_recovery_score(workouts: list, language: str = "en") -> dict:
 
 # ========== USER GOALS ==========
 
+# Distance types with km values
+DISTANCE_TYPES = {
+    "5k": 5.0,
+    "10k": 10.0,
+    "semi": 21.1,
+    "marathon": 42.195,
+    "ultra": 50.0  # Default for ultra, actual distance in event_name
+}
+
+
+def calculate_target_pace(distance_km: float, target_time_minutes: int) -> str:
+    """Calculate target pace in min/km format"""
+    if distance_km <= 0 or target_time_minutes <= 0:
+        return None
+    pace_minutes = target_time_minutes / distance_km
+    pace_min = int(pace_minutes)
+    pace_sec = int((pace_minutes - pace_min) * 60)
+    return f"{pace_min}:{pace_sec:02d}"
+
+
+def format_target_time(minutes: int) -> str:
+    """Format target time as Xh:MM"""
+    if not minutes:
+        return None
+    hours = minutes // 60
+    mins = minutes % 60
+    if hours > 0:
+        return f"{hours}h{mins:02d}"
+    return f"{mins}min"
+
+
 class UserGoal(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     user_id: str
     event_name: str
     event_date: str  # ISO date string
+    distance_type: str  # 5k, 10k, semi, marathon, ultra
+    distance_km: float  # Actual distance in km
+    target_time_minutes: Optional[int] = None  # Target time in minutes
+    target_pace: Optional[str] = None  # Calculated pace min/km
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 
 class UserGoalCreate(BaseModel):
     event_name: str
     event_date: str
+    distance_type: str  # 5k, 10k, semi, marathon, ultra
+    target_time_minutes: Optional[int] = None  # Target time in minutes
 
 
 @api_router.get("/user/goal")
@@ -1352,15 +1389,27 @@ async def get_user_goal(user_id: str = "default"):
 
 @api_router.post("/user/goal")
 async def set_user_goal(goal: UserGoalCreate, user_id: str = "default"):
-    """Set user's goal (event with date)"""
+    """Set user's goal (event with date, distance, target time)"""
     # Delete existing goal
     await db.user_goals.delete_many({"user_id": user_id})
+    
+    # Get distance in km
+    distance_km = DISTANCE_TYPES.get(goal.distance_type, 42.195)
+    
+    # Calculate target pace if time provided
+    target_pace = None
+    if goal.target_time_minutes:
+        target_pace = calculate_target_pace(distance_km, goal.target_time_minutes)
     
     # Create new goal
     goal_obj = UserGoal(
         user_id=user_id,
         event_name=goal.event_name,
-        event_date=goal.event_date
+        event_date=goal.event_date,
+        distance_type=goal.distance_type,
+        distance_km=distance_km,
+        target_time_minutes=goal.target_time_minutes,
+        target_pace=target_pace
     )
     doc = goal_obj.model_dump()
     await db.user_goals.insert_one(doc)
@@ -1368,7 +1417,7 @@ async def set_user_goal(goal: UserGoalCreate, user_id: str = "default"):
     # Return without _id
     doc.pop("_id", None)
     
-    logger.info(f"Goal set for user {user_id}: {goal.event_name} on {goal.event_date}")
+    logger.info(f"Goal set for user {user_id}: {goal.event_name} ({goal.distance_type}) on {goal.event_date}, target: {goal.target_time_minutes}min")
     return {"success": True, "goal": doc}
 
 
