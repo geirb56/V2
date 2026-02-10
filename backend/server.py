@@ -2416,17 +2416,46 @@ async def get_weekly_review(user_id: str = "default", language: str = "en"):
     recommendations_followup = ""
     
     if current_week:
-        # Build training data summary for AI
+        # Calculate aggregated HR zones for the week
+        weekly_zones = {"z1": 0, "z2": 0, "z3": 0, "z4": 0, "z5": 0}
+        zones_count = 0
+        total_cadence = 0
+        cadence_count = 0
+        
+        for w in current_week:
+            zones = w.get("effort_zone_distribution")
+            if zones:
+                for z in ["z1", "z2", "z3", "z4", "z5"]:
+                    weekly_zones[z] += zones.get(z, 0)
+                zones_count += 1
+            
+            cadence = w.get("avg_cadence_spm")
+            if cadence:
+                total_cadence += cadence
+                cadence_count += 1
+        
+        # Average zones across workouts
+        if zones_count > 0:
+            weekly_zones = {z: round(v / zones_count) for z, v in weekly_zones.items()}
+        
+        avg_cadence = round(total_cadence / cadence_count) if cadence_count > 0 else None
+        
+        # Build training data summary for AI with enriched data
         training_summary = {
             "sessions": len(current_week),
             "total_km": metrics["total_distance_km"],
             "total_hours": round(metrics["total_duration_min"] / 60, 1),
+            "hr_zones_avg": weekly_zones if zones_count > 0 else None,
+            "avg_cadence_spm": avg_cadence,
             "workouts": [
                 {
                     "date": w.get("date"),
                     "type": w.get("type"),
                     "distance_km": w.get("distance_km"),
                     "duration_min": w.get("duration_minutes"),
+                    "hr_zones": w.get("effort_zone_distribution"),
+                    "avg_pace": w.get("avg_pace_min_km"),
+                    "cadence": w.get("avg_cadence_spm")
                 }
                 for w in current_week[:7]
             ]
