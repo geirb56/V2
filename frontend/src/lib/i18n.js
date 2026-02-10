@@ -400,6 +400,19 @@ export const translations = {
       byType: "Par Type",
       dailyDistance: "Distance Quotidienne",
       allWorkouts: "Toutes les seances",
+      vmaEstimate: "Estimation VMA / VO2max",
+      vma: "VMA",
+      vo2max: "VO2max",
+      confidence: "Fiabilite",
+      dataSource: "Source des donnees",
+      trainingZones: "Zones d'entrainement",
+      insufficientData: "Donnees insuffisantes",
+      confidenceLevels: {
+        high: "Elevee",
+        medium: "Correcte",
+        low: "Limitee",
+        insufficient: "Insuffisante"
+      }
     },
     
     // Guidance
