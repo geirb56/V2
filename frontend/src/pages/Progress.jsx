@@ -4,15 +4,6 @@ import axios from "axios";
 import { Card, CardContent } from "@/components/ui/card";
 import { useLanguage } from "@/context/LanguageContext";
 import { 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  ResponsiveContainer,
-  Tooltip,
-  Cell
-} from "recharts";
-import { 
   TrendingUp, 
   Activity,
   ChevronRight,
@@ -45,20 +36,6 @@ const formatDuration = (minutes) => {
     return `${hrs}h ${mins}m`;
   }
   return `${mins}m`;
-};
-
-const CustomTooltip = ({ active, payload, label, t }) => {
-  if (active && payload && payload.length) {
-    return (
-      <div className="bg-popover border border-border p-3">
-        <p className="font-mono text-xs text-muted-foreground mb-1">{label}</p>
-        <p className="font-mono text-sm font-medium">
-          {payload[0].value.toFixed(1)} {t("dashboard.km")}
-        </p>
-      </div>
-    );
-  }
-  return null;
 };
 
 // VMA Estimate Component
@@ -260,7 +237,7 @@ export default function Progress() {
   const [loading, setLoading] = useState(true);
   const { t, lang } = useLanguage();
 
-  const dateLocale = t("dateFormat.locale");
+  const dateLocale = lang === "fr" ? "fr-FR" : "en-US";
 
   useEffect(() => {
     const fetchData = async () => {
@@ -289,13 +266,6 @@ export default function Progress() {
     );
   }
 
-  // Prepare chart data with localized day names
-  const chartData = stats?.weekly_summary?.map(day => ({
-    date: new Date(day.date).toLocaleDateString(dateLocale, { weekday: "short" }),
-    distance: day.distance,
-    count: day.count
-  })) || [];
-
   const typeData = stats?.workouts_by_type || {};
 
   return (
@@ -310,17 +280,19 @@ export default function Progress() {
         </p>
       </div>
 
-      {/* VMA Estimate Card - NEW */}
+      {/* VMA Estimate Card */}
       <div className="mb-8">
         <VMAEstimateCard t={t} lang={lang} />
       </div>
 
       {/* Summary Stats */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
-        <Card className="metric-card bg-card border-border">
+        <Card className="bg-card border-border">
           <CardContent className="p-4 md:p-6">
             <div className="flex items-start justify-between mb-3">
-              <span className="data-label">{t("progress.totalVolume")}</span>
+              <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                {t("progress.totalVolume")}
+              </span>
               <TrendingUp className="w-4 h-4 text-chart-2" />
             </div>
             <p className="font-heading text-3xl md:text-4xl font-bold">
@@ -330,10 +302,12 @@ export default function Progress() {
           </CardContent>
         </Card>
 
-        <Card className="metric-card bg-card border-border">
+        <Card className="bg-card border-border">
           <CardContent className="p-4 md:p-6">
             <div className="flex items-start justify-between mb-3">
-              <span className="data-label">{t("progress.sessions")}</span>
+              <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                {t("progress.sessions")}
+              </span>
               <Activity className="w-4 h-4 text-primary" />
             </div>
             <p className="font-heading text-3xl md:text-4xl font-bold">
@@ -343,10 +317,12 @@ export default function Progress() {
           </CardContent>
         </Card>
 
-        <Card className="metric-card bg-card border-border col-span-2 md:col-span-1">
+        <Card className="bg-card border-border col-span-2 md:col-span-1">
           <CardContent className="p-4 md:p-6">
             <div className="flex items-start justify-between mb-3">
-              <span className="data-label">{t("progress.byType")}</span>
+              <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                {t("progress.byType")}
+              </span>
               <Calendar className="w-4 h-4 text-muted-foreground" />
             </div>
             <div className="flex items-center gap-4">
@@ -364,43 +340,6 @@ export default function Progress() {
         </Card>
       </div>
 
-      {/* Distance Chart */}
-      {chartData.length > 0 && (
-        <div className="mb-8">
-          <h2 className="font-heading text-lg uppercase tracking-tight font-semibold mb-4">
-            {t("progress.dailyDistance")}
-          </h2>
-          <Card className="chart-container">
-            <CardContent className="p-6">
-              <ResponsiveContainer width="100%" height={200}>
-                <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                  <XAxis 
-                    dataKey="date" 
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10, fontFamily: "JetBrains Mono" }}
-                  />
-                  <YAxis 
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10, fontFamily: "JetBrains Mono" }}
-                  />
-                  <Tooltip content={(props) => <CustomTooltip {...props} t={t} />} cursor={false} />
-                  <Bar dataKey="distance" radius={[0, 0, 0, 0]}>
-                    {chartData.map((entry, index) => (
-                      <Cell 
-                        key={`cell-${index}`} 
-                        fill={entry.distance > 0 ? "hsl(var(--primary))" : "hsl(var(--muted))"}
-                      />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
       {/* All Workouts */}
       <div>
         <h2 className="font-heading text-lg uppercase tracking-tight font-semibold mb-4">
@@ -409,16 +348,14 @@ export default function Progress() {
         <div className="space-y-3">
           {workouts.slice(0, 20).map((workout, index) => {
             const Icon = getWorkoutIcon(workout.type);
-            const typeLabel = t(`workoutTypes.${workout.type}`) || workout.type;
             return (
               <Link
                 key={workout.id}
                 to={`/workout/${workout.id}`}
                 data-testid={`progress-workout-${workout.id}`}
-                className="block animate-in"
-                style={{ animationDelay: `${index * 30}ms` }}
+                className="block"
               >
-                <Card className="metric-card bg-card border-border hover:border-primary/30 transition-colors">
+                <Card className="bg-card border-border hover:border-primary/30 transition-colors">
                   <CardContent className="p-4">
                     <div className="flex items-center gap-4">
                       <div className="flex-shrink-0 w-10 h-10 flex items-center justify-center bg-muted border border-border">
@@ -426,8 +363,8 @@ export default function Progress() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
-                          <span className="workout-type-badge">
-                            {typeLabel}
+                          <span className="font-mono text-[10px] uppercase tracking-wider text-primary">
+                            {workout.type}
                           </span>
                           <span className="font-mono text-[10px] text-muted-foreground">
                             {new Date(workout.date).toLocaleDateString(dateLocale, {
@@ -443,7 +380,7 @@ export default function Progress() {
                       <div className="flex items-center gap-4">
                         <div className="text-right">
                           <p className="font-mono text-sm font-medium">
-                            {workout.distance_km.toFixed(1)} {t("dashboard.km")}
+                            {workout.distance_km?.toFixed(1)} km
                           </p>
                           <p className="font-mono text-[10px] text-muted-foreground">
                             {formatDuration(workout.duration_minutes)}
