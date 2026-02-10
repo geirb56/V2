@@ -2166,32 +2166,26 @@ PREVIOUS WEEK DATA: {baseline_data}
 {goal_context}
 {followup_context}
 
+KEY METRICS TO USE IN YOUR ANALYSIS:
+- HR Zone distribution: Aggregate Z1-Z5 percentages show training intensity balance
+  (Ideal polarized: 80% easy Z1-Z2, 20% hard Z4-Z5)
+- Average cadence: Running efficiency indicator (optimal 170-180 spm)
+- Pace consistency: Low variability = steady runs, high = intervals or terrain
+
 Respond in JSON format only:
 {{
-  "coach_summary": "<ONE sentence maximum. Calm, human, expert tone. Example: 'Light but clean week, ideal to restart without creating fatigue.'>",
-  "coach_reading": "<2 to 3 sentences ONLY. Put meaning on the numbers. Say what is GOOD and what to WATCH OUT for. Example: 'Volume is up but concentrated in one outing. Acceptable occasionally, but spread it out if you want progress without fatigue.'>",
+  "coach_summary": "<ONE sentence maximum. Include zone insight if relevant. Example: 'Good volume with mostly easy effort - classic endurance building week.'>",
+  "coach_reading": "<2 to 3 sentences ONLY. Interpret zones and intensity balance. Example: 'You spent 70% in Z4 this week which is high intensity. Consider adding more Z2 runs for recovery. Cadence averaged 165, try shorter steps for efficiency.'>",
   "recommendations": [
-    "<1 to 2 clear recommendations. ACTION-oriented. Applicable next week. No conditionals, no options. If goal exists, tailor to it. Example: 'Add a 2nd short and easy outing'>",
-    "<Example: 'Keep a relaxed pace, don't chase speed'>"
+    "<1 to 2 clear recommendations based on zone analysis. ACTION-oriented. Example: 'Add a pure Z2 recovery run (conversational pace)'>",
+    "<Example: 'Work on cadence: aim for 170+ spm on easy runs'>"
   ],
-  "recommendations_followup": "<ONLY if previous recommendations exist: ONE sentence about how the user followed (or not) last week's advice. Be factual, not judgmental. Example: 'You added that second outing as suggested, good consistency.' or 'Volume stayed concentrated despite the advice to spread it.' Leave empty string if no previous recommendations.>"
+  "recommendations_followup": "<ONLY if previous recommendations exist: ONE sentence about how the user followed (or not) last week's advice. Be factual, not judgmental. Leave empty string if no previous recommendations.>"
 }}
 
-STRICTLY FORBIDDEN:
-- Stars (*, **, ****)
-- Markdown (##, ###)
-- Numbered lists (1., 2.)
-- Scientific jargon
-- Report-style language
-- Long paragraphs
-- Zones, bpm, or technical terms unless absolutely necessary
-
-TONE:
-- Calm
-- Confident
-- Professional
-- Short sentences
-- Like a coach speaking directly to the athlete
+TRANSLATE zones naturally: Z1-Z2="easy/recovery", Z3="moderate", Z4="hard/tempo", Z5="max effort"
+FORBIDDEN: Raw percentages without context, markdown, report language
+REQUIRED: Interpret data into simple coaching insights. Calm, confident, professional.
 
 100% ENGLISH only. No French words."""
 
@@ -2203,32 +2197,26 @@ DONNEES SEMAINE PRECEDENTE: {baseline_data}
 {goal_context}
 {followup_context}
 
+METRIQUES CLES POUR TON ANALYSE:
+- Repartition zones FC: Agregation Z1-Z5 montre l'equilibre d'intensite
+  (Ideal polarise: 80% facile Z1-Z2, 20% dur Z4-Z5)
+- Cadence moyenne: Indicateur d'efficacite (optimal 170-180 ppm)
+- Regularite allure: Basse variabilite = sorties regulieres, haute = intervalles ou terrain
+
 Reponds en format JSON uniquement:
 {{
-  "coach_summary": "<UNE phrase maximum. Ton calme, humain, expert. Exemple: 'Semaine legere mais propre, ideale pour relancer sans creer de fatigue.'>",
-  "coach_reading": "<2 a 3 phrases UNIQUEMENT. Mets du sens sur les chiffres. Dis ce qui est BIEN et ce qui est A SURVEILLER. Exemple: 'Le volume est en hausse mais concentre sur une seule sortie. Acceptable ponctuellement, mais a lisser si tu veux progresser sans fatigue.'>",
+  "coach_summary": "<UNE phrase maximum. Inclus insight zones si pertinent. Exemple: 'Bon volume avec effort surtout facile - semaine classique de construction.'>",
+  "coach_reading": "<2 a 3 phrases UNIQUEMENT. Interprete zones et equilibre intensite. Exemple: 'Tu as passe 70% en Z4 cette semaine, intensite elevee. Ajoute des sorties Z2 pour recuperer. Cadence moyenne 165, essaie des foulees plus courtes.'>",
   "recommendations": [
-    "<1 a 2 recommandations claires. Orientees ACTION. Applicables la semaine prochaine. Pas de conditionnel, pas d'options. Si objectif existe, adapte-toi. Exemple: 'Ajouter une 2e sortie courte et facile'>",
-    "<Exemple: 'Garder l'allure relachee, sans chercher la vitesse'>"
+    "<1 a 2 recommandations claires basees sur analyse zones. Orientees ACTION. Exemple: 'Ajouter une sortie pure Z2 (allure conversation)'>",
+    "<Exemple: 'Travailler la cadence: viser 170+ ppm sur sorties faciles'>"
   ],
-  "recommendations_followup": "<UNIQUEMENT si des recommandations precedentes existent: UNE phrase sur comment l'utilisateur a suivi (ou non) les conseils de la semaine derniere. Sois factuel, pas moralisateur. Exemple: 'Tu as ajoute cette deuxieme sortie comme suggere, bonne regularite.' ou 'Le volume est reste concentre malgre le conseil de l'etaler.' Laisse vide si pas de recommandations precedentes.>"
+  "recommendations_followup": "<UNIQUEMENT si recommandations precedentes existent: UNE phrase sur comment l'utilisateur a suivi (ou non) les conseils. Factuel, pas moralisateur. Vide si pas de recommandations precedentes.>"
 }}
 
-STRICTEMENT INTERDIT:
-- Etoiles (*, **, ****)
-- Markdown (##, ###)
-- Listes numerotees (1., 2.)
-- Jargon scientifique
-- Langage de rapport
-- Paragraphes longs
-- Zones, bpm, ou termes techniques sauf absolument necessaire
-
-TON:
-- Calme
-- Confiant
-- Professionnel
-- Phrases courtes
-- Comme un coach qui parle directement a l'athlete
+TRADUIRE les zones naturellement: Z1-Z2="facile/recup", Z3="modere", Z4="soutenu/tempo", Z5="effort max"
+INTERDIT: Pourcentages bruts sans contexte, markdown, langage de rapport
+OBLIGATOIRE: Interprete les donnees en coaching simple. Calme, confiant, professionnel.
 
 100% FRANCAIS uniquement. Aucun mot anglais."""
 
