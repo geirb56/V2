@@ -1350,6 +1350,317 @@ async def create_workout(workout: WorkoutCreate):
     return workout_obj
 
 
+# ========== VMA / VO2MAX ESTIMATION ==========
+
+class VMAEstimationResponse(BaseModel):
+    has_sufficient_data: bool
+    confidence: str  # "high", "medium", "low", "insufficient"
+    confidence_score: int  # 1-5 (5 = very confident)
+    vma_kmh: Optional[float] = None
+    vo2max: Optional[float] = None
+    data_source: Optional[str] = None
+    training_zones: Optional[dict] = None
+    message: str
+    recommendations: Optional[List[str]] = None
+
+
+def estimate_vma_from_race(distance_km: float, time_minutes: int) -> dict:
+    """Estimate VMA from race performance using VDOT tables (Jack Daniels)"""
+    if distance_km <= 0 or time_minutes <= 0:
+        return None
+    
+    # Calculate pace in min/km
+    pace_min_km = time_minutes / distance_km
+    
+    # Simplified VDOT estimation based on pace
+    # These are approximations from Jack Daniels' tables
+    speed_kmh = 60 / pace_min_km  # Convert pace to km/h
+    
+    # VMA is approximately the speed you can sustain for 4-7 minutes
+    # From race performance, we estimate VMA based on distance
+    # Longer distances = lower % of VMA
+    vma_percentage = {
+        5: 0.95,      # 5km ≈ 95% VMA
+        10: 0.90,     # 10km ≈ 90% VMA
+        21.1: 0.85,   # Semi ≈ 85% VMA
+        42.195: 0.80  # Marathon ≈ 80% VMA
+    }
+    
+    # Find closest distance
+    closest_dist = min(vma_percentage.keys(), key=lambda x: abs(x - distance_km))
+    pct = vma_percentage[closest_dist]
+    
+    vma_kmh = speed_kmh / pct
+    vo2max = vma_kmh * 3.5  # Standard formula: VO2max ≈ VMA × 3.5
+    
+    return {
+        "vma_kmh": round(vma_kmh, 1),
+        "vo2max": round(vo2max, 1),
+        "method": "race_performance",
+        "confidence": "high" if distance_km >= 5 else "medium"
+    }
+
+
+def estimate_vma_from_workouts(workouts: list) -> dict:
+    """Estimate VMA from training data (Z5 efforts)"""
+    
+    # Filter running workouts with HR zones
+    running_workouts = [
+        w for w in workouts 
+        if w.get("type") == "run" and w.get("effort_zone_distribution")
+    ]
+    
+    if len(running_workouts) < 3:
+        return {
+            "has_sufficient_data": False,
+            "reason": "need_more_workouts",
+            "count": len(running_workouts)
+        }
+    
+    # Analyze Z5 efforts
+    z5_efforts = []
+    z4_efforts = []
+    
+    for w in running_workouts:
+        zones = w.get("effort_zone_distribution", {})
+        z5_pct = zones.get("z5", 0) or 0
+        z4_pct = zones.get("z4", 0) or 0
+        duration = w.get("duration_minutes", 0)
+        
+        # Z5 time in minutes
+        z5_time = (z5_pct / 100) * duration
+        z4_time = (z4_pct / 100) * duration
+        
+        # Best pace as proxy for VMA effort
+        best_pace = w.get("best_pace_min_km")
+        avg_pace = w.get("avg_pace_min_km")
+        
+        if z5_time >= 2 and best_pace:  # At least 2 min in Z5
+            z5_efforts.append({
+                "workout": w.get("name"),
+                "date": w.get("date"),
+                "z5_time_min": z5_time,
+                "best_pace": best_pace,
+                "avg_pace": avg_pace
+            })
+        
+        if z4_time >= 5 and avg_pace:  # At least 5 min in Z4
+            z4_efforts.append({
+                "workout": w.get("name"),
+                "date": w.get("date"),
+                "z4_time_min": z4_time,
+                "avg_pace": avg_pace
+            })
+    
+    # Priority 1: Use Z5 efforts (most reliable)
+    if len(z5_efforts) >= 2:
+        # Take best paces from Z5 efforts
+        best_paces = [e["best_pace"] for e in z5_efforts if e["best_pace"]]
+        if best_paces:
+            # VMA ≈ best pace in Z5 (slightly faster)
+            avg_best_pace = sum(best_paces) / len(best_paces)
+            vma_kmh = 60 / avg_best_pace  # Convert min/km to km/h
+            vo2max = vma_kmh * 3.5
+            
+            return {
+                "has_sufficient_data": True,
+                "vma_kmh": round(vma_kmh, 1),
+                "vo2max": round(vo2max, 1),
+                "method": "z5_efforts",
+                "confidence": "medium",
+                "sample_count": len(z5_efforts),
+                "efforts": z5_efforts[:3]  # Return top 3 for reference
+            }
+    
+    # Priority 2: Use Z4 efforts (less reliable)
+    if len(z4_efforts) >= 3:
+        avg_paces = [e["avg_pace"] for e in z4_efforts if e["avg_pace"]]
+        if avg_paces:
+            # Z4 pace ≈ 85-90% VMA, so VMA ≈ Z4 pace / 0.87
+            avg_z4_pace = sum(avg_paces) / len(avg_paces)
+            z4_speed = 60 / avg_z4_pace
+            vma_kmh = z4_speed / 0.87
+            vo2max = vma_kmh * 3.5
+            
+            return {
+                "has_sufficient_data": True,
+                "vma_kmh": round(vma_kmh, 1),
+                "vo2max": round(vo2max, 1),
+                "method": "z4_extrapolation",
+                "confidence": "low",
+                "sample_count": len(z4_efforts),
+                "warning": "Estimation basée sur Z4 uniquement - moins fiable"
+            }
+    
+    # Not enough high-intensity data
+    return {
+        "has_sufficient_data": False,
+        "reason": "need_high_intensity",
+        "z5_count": len(z5_efforts),
+        "z4_count": len(z4_efforts)
+    }
+
+
+def calculate_training_zones(vma_kmh: float, language: str = "en") -> dict:
+    """Calculate training zones based on VMA"""
+    
+    def kmh_to_pace(speed_kmh):
+        if speed_kmh <= 0:
+            return None
+        pace = 60 / speed_kmh
+        mins = int(pace)
+        secs = int((pace - mins) * 60)
+        return f"{mins}:{secs:02d}"
+    
+    zones = {
+        "z1": {
+            "name": "Recovery" if language == "en" else "Récupération",
+            "pct_vma": "60-65%",
+            "pace_range": f"{kmh_to_pace(vma_kmh * 0.60)} - {kmh_to_pace(vma_kmh * 0.65)}"
+        },
+        "z2": {
+            "name": "Endurance" if language == "en" else "Endurance",
+            "pct_vma": "65-75%",
+            "pace_range": f"{kmh_to_pace(vma_kmh * 0.65)} - {kmh_to_pace(vma_kmh * 0.75)}"
+        },
+        "z3": {
+            "name": "Tempo" if language == "en" else "Tempo",
+            "pct_vma": "75-85%",
+            "pace_range": f"{kmh_to_pace(vma_kmh * 0.75)} - {kmh_to_pace(vma_kmh * 0.85)}"
+        },
+        "z4": {
+            "name": "Threshold" if language == "en" else "Seuil",
+            "pct_vma": "85-95%",
+            "pace_range": f"{kmh_to_pace(vma_kmh * 0.85)} - {kmh_to_pace(vma_kmh * 0.95)}"
+        },
+        "z5": {
+            "name": "VMA/VO2max",
+            "pct_vma": "95-105%",
+            "pace_range": f"{kmh_to_pace(vma_kmh * 0.95)} - {kmh_to_pace(vma_kmh * 1.05)}"
+        }
+    }
+    
+    return zones
+
+
+@api_router.get("/user/vma-estimate")
+async def get_vma_estimate(user_id: str = "default", language: str = "en"):
+    """Estimate VMA and VO2max from user data"""
+    
+    # Check if user has a goal (race performance to use)
+    user_goal = await db.user_goals.find_one({"user_id": user_id}, {"_id": 0})
+    
+    # Get all running workouts
+    all_workouts = await db.workouts.find(
+        {"type": "run"}, 
+        {"_id": 0}
+    ).sort("date", -1).to_list(100)
+    
+    if not all_workouts:
+        return VMAEstimationResponse(
+            has_sufficient_data=False,
+            confidence="insufficient",
+            confidence_score=0,
+            message="Données insuffisantes. Aucune séance de course enregistrée." if language == "fr" else "Insufficient data. No running workouts recorded.",
+            recommendations=[
+                "Synchronise tes séances Strava" if language == "fr" else "Sync your Strava workouts",
+                "Fais quelques sorties avec cardiofréquencemètre" if language == "fr" else "Do some runs with heart rate monitor"
+            ]
+        )
+    
+    result = None
+    data_source = None
+    
+    # Priority 1: Use goal race performance if it's a past event or use target
+    if user_goal and user_goal.get("target_time_minutes") and user_goal.get("distance_km"):
+        race_estimate = estimate_vma_from_race(
+            user_goal["distance_km"],
+            user_goal["target_time_minutes"]
+        )
+        if race_estimate:
+            result = race_estimate
+            data_source = f"Objectif: {user_goal['event_name']}" if language == "fr" else f"Goal: {user_goal['event_name']}"
+    
+    # Priority 2: Analyze workout data
+    if not result:
+        workout_estimate = estimate_vma_from_workouts(all_workouts)
+        
+        if not workout_estimate.get("has_sufficient_data"):
+            reason = workout_estimate.get("reason")
+            
+            if reason == "need_more_workouts":
+                msg = f"Données insuffisantes. Seulement {workout_estimate.get('count')} séances avec données cardio." if language == "fr" else f"Insufficient data. Only {workout_estimate.get('count')} workouts with HR data."
+                recs = [
+                    "Continue à synchroniser tes séances" if language == "fr" else "Keep syncing your workouts",
+                    "Au moins 3 séances avec cardiofréquencemètre nécessaires" if language == "fr" else "At least 3 workouts with HR monitor needed"
+                ]
+            else:  # need_high_intensity
+                msg = f"Données insuffisantes. Pas assez d'efforts intenses (Z4/Z5) pour estimer la VMA." if language == "fr" else f"Insufficient data. Not enough high-intensity efforts (Z4/Z5) to estimate VMA."
+                recs = [
+                    "Fais une séance de fractionné ou un test VMA" if language == "fr" else "Do an interval session or VMA test",
+                    f"Séances Z5 trouvées: {workout_estimate.get('z5_count', 0)}, Z4: {workout_estimate.get('z4_count', 0)}"
+                ]
+            
+            return VMAEstimationResponse(
+                has_sufficient_data=False,
+                confidence="insufficient",
+                confidence_score=0,
+                message=msg,
+                recommendations=recs
+            )
+        
+        result = workout_estimate
+        method = result.get("method")
+        if method == "z5_efforts":
+            data_source = f"Analyse de {result.get('sample_count')} efforts Z5" if language == "fr" else f"Analysis of {result.get('sample_count')} Z5 efforts"
+        else:
+            data_source = f"Extrapolation depuis {result.get('sample_count')} séances Z4" if language == "fr" else f"Extrapolation from {result.get('sample_count')} Z4 sessions"
+    
+    # Calculate training zones
+    vma_kmh = result["vma_kmh"]
+    vo2max = result["vo2max"]
+    training_zones = calculate_training_zones(vma_kmh, language)
+    
+    # Confidence mapping
+    confidence = result.get("confidence", "medium")
+    confidence_scores = {"high": 5, "medium": 3, "low": 2}
+    confidence_score = confidence_scores.get(confidence, 1)
+    
+    # Build message
+    if confidence == "high":
+        msg = f"VMA estimée avec bonne fiabilité depuis ton objectif de course." if language == "fr" else "VMA estimated with good reliability from your race goal."
+    elif confidence == "medium":
+        msg = f"VMA estimée depuis tes efforts intenses. Fiabilité correcte." if language == "fr" else "VMA estimated from your intense efforts. Decent reliability."
+    else:
+        msg = f"VMA estimée par extrapolation. Fiabilité limitée - un test VMA serait plus précis." if language == "fr" else "VMA estimated by extrapolation. Limited reliability - a VMA test would be more accurate."
+    
+    # Recommendations based on VMA
+    if language == "fr":
+        recs = [
+            f"Endurance fondamentale: {training_zones['z2']['pace_range']}/km",
+            f"Allure seuil (tempo): {training_zones['z4']['pace_range']}/km",
+            f"Fractionné VMA: {training_zones['z5']['pace_range']}/km"
+        ]
+    else:
+        recs = [
+            f"Easy/endurance pace: {training_zones['z2']['pace_range']}/km",
+            f"Threshold (tempo) pace: {training_zones['z4']['pace_range']}/km",
+            f"VMA intervals: {training_zones['z5']['pace_range']}/km"
+        ]
+    
+    return VMAEstimationResponse(
+        has_sufficient_data=True,
+        confidence=confidence,
+        confidence_score=confidence_score,
+        vma_kmh=vma_kmh,
+        vo2max=vo2max,
+        data_source=data_source,
+        training_zones=training_zones,
+        message=msg,
+        recommendations=recs
+    )
+
+
 # ========== DASHBOARD INSIGHT (DECISION ASSISTANT) ==========
 
 DASHBOARD_INSIGHT_PROMPT_EN = """You are a calm, experienced running coach.
