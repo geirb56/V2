@@ -136,6 +136,19 @@ export const translations = {
       byType: "By Type",
       dailyDistance: "Daily Distance",
       allWorkouts: "All Workouts",
+      vmaEstimate: "VMA / VO2max Estimate",
+      vma: "VMA",
+      vo2max: "VO2max",
+      confidence: "Confidence",
+      dataSource: "Data source",
+      trainingZones: "Training Zones",
+      insufficientData: "Insufficient Data",
+      confidenceLevels: {
+        high: "High",
+        medium: "Medium",
+        low: "Low",
+        insufficient: "Insufficient"
+      }
     },
     
     // Guidance
