@@ -2714,15 +2714,22 @@ async def get_mobile_workout_analysis(workout_id: str, language: str = "en", use
     # Calculate signal cards
     signals = calculate_mobile_signals(workout, baseline)
     
-    # Build workout summary for AI
+    # Build workout summary for AI with enriched data
     workout_summary = {
         "type": workout.get("type"),
         "distance_km": workout.get("distance_km"),
         "duration_min": workout.get("duration_minutes"),
+        "moving_time_min": workout.get("moving_time_minutes"),
         "avg_hr": workout.get("avg_heart_rate"),
-        "avg_pace": workout.get("avg_pace_min_km"),
-        "avg_speed": workout.get("avg_speed_kmh"),
-        "zones": workout.get("effort_zone_distribution")
+        "max_hr": workout.get("max_heart_rate"),
+        "hr_zones": workout.get("effort_zone_distribution"),
+        "avg_pace_min_km": workout.get("avg_pace_min_km"),
+        "best_pace_min_km": workout.get("best_pace_min_km"),
+        "pace_variability": workout.get("pace_stats", {}).get("pace_variability") if workout.get("pace_stats") else None,
+        "avg_cadence_spm": workout.get("avg_cadence_spm"),
+        "avg_speed_kmh": workout.get("avg_speed_kmh"),
+        "max_speed_kmh": workout.get("max_speed_kmh"),
+        "elevation_m": workout.get("elevation_gain_m")
     }
     
     baseline_summary = {
@@ -2730,7 +2737,8 @@ async def get_mobile_workout_analysis(workout_id: str, language: str = "en", use
         "avg_distance": baseline.get("avg_distance_km") if baseline else None,
         "avg_duration": baseline.get("avg_duration_min") if baseline else None,
         "avg_hr": baseline.get("avg_heart_rate") if baseline else None,
-        "avg_pace": baseline.get("avg_pace") if baseline else None
+        "avg_pace": baseline.get("avg_pace") if baseline else None,
+        "avg_cadence": baseline.get("avg_cadence") if baseline else None
     } if baseline else {}
     
     # Generate AI analysis
