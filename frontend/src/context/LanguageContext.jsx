@@ -8,9 +8,10 @@ const STORAGE_KEY = "cardiocoach_lang";
 export const LanguageProvider = ({ children }) => {
   const [lang, setLang] = useState(() => {
     if (typeof window !== "undefined") {
-      return localStorage.getItem(STORAGE_KEY) || "en";
+      // Default to French if no preference saved
+      return localStorage.getItem(STORAGE_KEY) || "fr";
     }
-    return "en";
+    return "fr";
   });
 
   useEffect(() => {
