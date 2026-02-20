@@ -359,7 +359,7 @@ export default function WorkoutDetail() {
         </Card>
       )}
 
-      {/* 4) Guidance (Optional) */}
+      {/* 5) Guidance (Optional) */}
       {analysis?.guidance && (
         <Card className="bg-primary/5 border-primary/20 mb-3">
           <CardContent className="p-3">
@@ -370,7 +370,7 @@ export default function WorkoutDetail() {
         </Card>
       )}
 
-      {/* 5) Actions */}
+      {/* 6) Actions */}
       <div className="space-y-2 mt-4">
         <Button
           onClick={goToDeepAnalysis}
