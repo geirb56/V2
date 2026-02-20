@@ -16,7 +16,8 @@ import {
   MessageSquare,
   Loader2,
   Bike,
-  Footprints
+  Footprints,
+  HeartPulse
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
