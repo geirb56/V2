@@ -323,7 +323,29 @@ export default function WorkoutDetail() {
         )}
       </div>
 
-      {/* 3) Coach Insight */}
+      {/* 3) Heart Rate Zones Distribution */}
+      {workout.effort_zone_distribution && (
+        <Card className="bg-card border-border mb-3" data-testid="hr-zones-card">
+          <CardContent className="p-3">
+            <div className="flex items-center gap-2 mb-3">
+              <HeartPulse className="w-4 h-4 text-chart-1" />
+              <span className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground">
+                {t("analysis.hrZones")}
+              </span>
+              {workout.avg_heart_rate && (
+                <span className="ml-auto font-mono text-[10px] text-muted-foreground flex items-center gap-1">
+                  <Heart className="w-3 h-3" />
+                  {t("analysis.avgHr")}: {workout.avg_heart_rate} bpm
+                </span>
+              )}
+            </div>
+            <HRZonesChart zones={workout.effort_zone_distribution} t={t} />
+            <ZoneSummary zones={workout.effort_zone_distribution} t={t} />
+          </CardContent>
+        </Card>
+      )}
+
+      {/* 4) Coach Insight */}
       {analysis?.insight && (
         <Card className="bg-card border-border mb-3">
           <CardContent className="p-3">
