@@ -73,6 +73,7 @@ export const translations = {
       pace: "Pace",
       speed: "Speed",
       avgHr: "Avg HR",
+      hrZones: "Heart Rate Zones",
       coachInsight: "Coach",
       viewDetailedAnalysis: "View detailed analysis",
       askCoach: "Ask the coach",
@@ -88,6 +89,21 @@ export const translations = {
         sustained: "Sustained",
         hard: "Hard",
       },
+    },
+    
+    // Heart Rate Zones
+    zones: {
+      recovery: "Recovery",
+      endurance: "Endurance",
+      tempo: "Tempo",
+      threshold: "Threshold",
+      max: "VO2max",
+      easy: "Easy",
+      moderate: "Moderate",
+      hard: "Hard",
+      dominant_easy: "Easy effort",
+      dominant_balanced: "Balanced",
+      dominant_hard: "High intensity",
     },
     
     // Detailed Analysis
