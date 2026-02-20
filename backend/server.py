@@ -2116,136 +2116,67 @@ async def get_stats():
 
 @api_router.post("/coach/analyze", response_model=CoachResponse)
 async def analyze_with_coach(request: CoachRequest):
-    """Get AI analysis from CardioCoach with persistent memory and contextual comparison"""
-    if not EMERGENT_LLM_KEY:
-        raise HTTPException(status_code=500, detail="LLM key not configured")
+    """Get analysis from CardioCoach - 100% LOCAL ENGINE, NO LLM
     
+    Note: Conversational Q&A is disabled. Use specific workout analysis instead.
+    """
     user_id = request.user_id or "default"
-    language = request.language or "en"
+    language = request.language or "fr"
     
-    # Build context parts
-    context_parts = []
-    workout = None
-    baseline = None
-    
-    # Get all workouts for baseline calculation
-    all_workouts = await db.workouts.find({}, {"_id": 0}).sort("date", -1).to_list(100)
-    if not all_workouts:
-        all_workouts = get_mock_workouts()
-    
-    # If specific workout requested, include its data
+    # If workout is specified, generate analysis using local engine
     if request.workout_id:
+        # Get all workouts for baseline
+        all_workouts = await db.workouts.find({}, {"_id": 0}).sort("date", -1).to_list(100)
+        if not all_workouts:
+            all_workouts = get_mock_workouts()
+        
         workout = await db.workouts.find_one({"id": request.workout_id}, {"_id": 0})
         if not workout:
             workout = next((w for w in all_workouts if w["id"] == request.workout_id), None)
         
         if workout:
-            context_parts.append(f"Current workout being analyzed:\n{workout}")
-            
-            # Calculate baseline metrics for contextual comparison
             baseline = calculate_baseline_metrics(all_workouts, workout, days=14)
-            if baseline:
-                context_parts.append(f"BASELINE METRICS (last {baseline['period_days']} days, {baseline['workout_count']} {baseline['workout_type']} sessions):\n{baseline}")
+            analysis = generate_session_analysis(workout, baseline, language)
+            
+            response_text = f"{analysis['summary']}\n\n{analysis['execution']}\n\n{analysis['meaning']}\n\n{analysis['advice']}"
+            
+            # Store in conversation history
+            msg_id = str(uuid.uuid4())
+            await db.conversations.insert_one({
+                "id": msg_id,
+                "user_id": user_id,
+                "role": "assistant",
+                "content": response_text,
+                "workout_id": request.workout_id,
+                "timestamp": datetime.now(timezone.utc).isoformat()
+            })
+            
+            return CoachResponse(response=response_text, message_id=msg_id)
     
-    # Include training history summary
-    if all_workouts:
-        recent_summary = [{
-            "date": w.get("date"),
-            "type": w.get("type"),
-            "distance_km": w.get("distance_km"),
-            "duration_minutes": w.get("duration_minutes"),
-            "avg_heart_rate": w.get("avg_heart_rate")
-        } for w in all_workouts[:5]]
-        context_parts.append(f"Recent training history (last 5 sessions):\n{recent_summary}")
+    # No workout specified - provide general guidance
+    all_workouts = await db.workouts.find({}, {"_id": 0}).sort("date", -1).to_list(50)
+    if not all_workouts:
+        all_workouts = get_mock_workouts()
     
-    # Include additional context if provided
-    if request.context:
-        context_parts.append(request.context)
+    # Get week stats for context
+    week_stats = calculate_week_stats(all_workouts)
+    month_stats = calculate_month_stats(all_workouts)
+    recovery = calculate_recovery_score(all_workouts, language)
     
-    # Fetch conversation memory (last 10 exchanges)
-    conversation_history = await db.conversations.find(
-        {"user_id": user_id},
-        {"_id": 0}
-    ).sort("timestamp", -1).to_list(20)
-    conversation_history.reverse()  # Chronological order
+    # Generate dashboard-style insight
+    insight = generate_dashboard_insight(
+        week_stats=week_stats,
+        month_stats=month_stats,
+        recovery_score=recovery.get("score") if recovery else None,
+        language=language
+    )
     
-    # Build memory context for the LLM
-    memory_context = ""
-    if conversation_history:
-        memory_entries = []
-        for msg in conversation_history[-10:]:  # Last 10 messages
-            role = "Athlete" if msg.get("role") == "user" else "Coach"
-            memory_entries.append(f"{role}: {msg.get('content', '')[:200]}")
-        memory_context = "\n\nConversation memory (use naturally, don't reference explicitly):\n" + "\n".join(memory_entries)
+    response_text = insight
+    if recovery:
+        response_text += f"\n\n{recovery.get('phrase', '')}"
     
-    # Build the full message
-    if request.deep_analysis and workout:
-        # Determine if hidden insight should be included (60% probability)
-        include_hidden_insight = random.random() < 0.6
-        
-        if include_hidden_insight:
-            hidden_instruction = HIDDEN_INSIGHT_FR if language == "fr" else HIDDEN_INSIGHT_EN
-        else:
-            hidden_instruction = NO_HIDDEN_INSIGHT
-        
-        # Deep analysis mode with baseline comparison and optional hidden insight
-        base_prompt = DEEP_ANALYSIS_PROMPT_FR if language == "fr" else DEEP_ANALYSIS_PROMPT_EN
-        deep_prompt = base_prompt.format(hidden_insight_instruction=hidden_instruction)
-        
-        full_message = f"{deep_prompt}\n\nWorkout data:\n{workout}"
-        if baseline:
-            full_message += f"\n\nBaseline comparison data:\n{baseline}"
-        
-        logger.info(f"Deep analysis: hidden_insight={'included' if include_hidden_insight else 'skipped'}")
-    else:
-        full_message = request.message
-    
-    if context_parts:
-        full_message = f"{full_message}\n\nContext:\n" + "\n".join(context_parts)
-    
-    if memory_context:
-        full_message = f"{full_message}{memory_context}"
-    
-    try:
-        session_id = f"coach_{user_id}"
-        system_prompt = get_system_prompt(language)
-        
-        chat = LlmChat(
-            api_key=EMERGENT_LLM_KEY,
-            session_id=session_id,
-            system_message=system_prompt
-        ).with_model("openai", "gpt-5.2")
-        
-        user_message = UserMessage(text=full_message)
-        response = await chat.send_message(user_message)
-        
-        # Store user message in conversation memory
-        user_msg_id = str(uuid.uuid4())
-        await db.conversations.insert_one({
-            "id": user_msg_id,
-            "user_id": user_id,
-            "role": "user",
-            "content": request.message,
-            "workout_id": request.workout_id,
-            "timestamp": datetime.now(timezone.utc).isoformat()
-        })
-        
-        # Store assistant response in conversation memory
-        assistant_msg_id = str(uuid.uuid4())
-        await db.conversations.insert_one({
-            "id": assistant_msg_id,
-            "user_id": user_id,
-            "role": "assistant",
-            "content": response,
-            "workout_id": request.workout_id,
-            "timestamp": datetime.now(timezone.utc).isoformat()
-        })
-        
-        return CoachResponse(response=response, message_id=assistant_msg_id)
-    
-    except Exception as e:
-        logger.error(f"Coach analysis error: {e}")
-        raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
+    msg_id = str(uuid.uuid4())
+    return CoachResponse(response=response_text, message_id=msg_id)
 
 
 @api_router.get("/coach/history")
