@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, HTTPException, Query
+from fastapi import FastAPI, APIRouter, HTTPException, Query, Request
 from fastapi.responses import RedirectResponse
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
@@ -26,6 +26,21 @@ from analysis_engine import (
     format_pace
 )
 
+# Import the chat engine (NO LLM dependencies)
+from chat_engine import (
+    generate_chat_response,
+    check_message_limit,
+    get_remaining_messages
+)
+
+# Import Stripe integration
+from emergentintegrations.payments.stripe.checkout import (
+    StripeCheckout, 
+    CheckoutSessionResponse, 
+    CheckoutStatusResponse, 
+    CheckoutSessionRequest
+)
+
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
@@ -33,6 +48,11 @@ load_dotenv(ROOT_DIR / '.env')
 mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
+
+# Stripe configuration
+STRIPE_API_KEY = os.environ.get('STRIPE_API_KEY', '')
+PREMIUM_PRICE_MONTHLY = 4.99  # EUR
+MAX_MESSAGES_PER_MONTH = 30
 
 # Garmin OAuth Configuration (placeholder - replace with real credentials)
 GARMIN_CLIENT_ID = os.environ.get('GARMIN_CLIENT_ID', '')
