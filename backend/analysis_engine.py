@@ -724,6 +724,12 @@ def generate_dashboard_insight(
 # HELPERS FOR SERVER.PY
 # ============================================================
 
+# Alias for backward compatibility
+def calculate_intensity_level(zones: dict) -> str:
+    """Alias for backward compatibility with server.py"""
+    return calculate_intensity_from_zones(zones) or "moderate"
+
+
 def calculate_review_metrics(current_week: list, baseline_week: list) -> tuple:
     """Calculate metrics and comparison for weekly review"""
     
