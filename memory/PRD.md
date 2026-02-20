@@ -379,20 +379,24 @@ User should always know: "Am I doing too much?", "Am I doing too little?", "What
 ### P0 - Completed ✅
 - ✅ Strava API integration structure
 - ✅ Weekly Digest + Executive Summary
+- ✅ **LOCAL ANALYSIS ENGINE (Feb 20, 2026)** - CRITICAL MIGRATION COMPLETE
 
 ### P1 - High Priority (Next)
 - Add real Strava API credentials to enable actual workout import
 - Replace mock workout data with synced Strava data
 
 ### P2 - Medium Priority
-- Recovery score calculation based on training load
+- Recovery score calculation based on training load ✅ (implemented)
 - "Ask about this insight" follow-up capability
 - Weekly/monthly summary emails
 - Export training data (CSV/JSON)
+- Display VMA/VO2max estimation in Settings UI (backend API ready)
+- History of past weekly reviews (Bilan)
 
 ### P3 - Nice to Have
 - Additional languages (German, Spanish)
 - Apple Health/Google Fit sync
+- Conversational coach with local LLM (Ollama) - premium feature
 
 ### Deprioritized
 - Garmin activation (dormant)
