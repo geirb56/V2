@@ -1,10 +1,14 @@
 import { Outlet, NavLink, useLocation } from "react-router-dom";
 import { Activity, MessageSquare, BarChart3, Home, Settings, Compass, CalendarDays } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
+import { useAutoSync } from "@/hooks/useAutoSync";
 
 export const Layout = () => {
   const location = useLocation();
   const { t } = useLanguage();
+  
+  // Auto-sync Strava data on startup
+  useAutoSync();
 
   const navItems = [
     { path: "/", icon: Home, labelKey: "nav.dashboard" },
