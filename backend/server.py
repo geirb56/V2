@@ -3472,6 +3472,393 @@ async def disconnect_strava(user_id: str = "default"):
     return {"success": True, "message": "Strava disconnected"}
 
 
+# ========== PREMIUM SUBSCRIPTION (STRIPE) ==========
+
+class PremiumStatusResponse(BaseModel):
+    is_premium: bool
+    subscription_id: Optional[str] = None
+    expires_at: Optional[str] = None
+    messages_used: int = 0
+    messages_remaining: int = MAX_MESSAGES_PER_MONTH
+
+
+class CreateCheckoutRequest(BaseModel):
+    origin_url: str
+
+
+class CreateCheckoutResponse(BaseModel):
+    checkout_url: str
+    session_id: str
+
+
+class ChatRequest(BaseModel):
+    message: str
+    user_id: str = "default"
+
+
+class ChatResponse(BaseModel):
+    response: str
+    message_id: str
+    messages_remaining: int
+
+
+class ChatHistoryItem(BaseModel):
+    id: str
+    role: str
+    content: str
+    timestamp: str
+
+
+@api_router.get("/premium/status")
+async def get_premium_status(user_id: str = "default"):
+    """Check if user has active premium subscription"""
+    
+    # Check subscription in DB
+    subscription = await db.subscriptions.find_one(
+        {"user_id": user_id, "status": "active"},
+        {"_id": 0}
+    )
+    
+    if not subscription:
+        return PremiumStatusResponse(
+            is_premium=False,
+            messages_used=0,
+            messages_remaining=0
+        )
+    
+    # Check if subscription is still valid
+    expires_at = subscription.get("expires_at")
+    if expires_at:
+        try:
+            exp_date = datetime.fromisoformat(expires_at.replace("Z", "+00:00"))
+            if exp_date < datetime.now(timezone.utc):
+                # Subscription expired
+                await db.subscriptions.update_one(
+                    {"user_id": user_id},
+                    {"$set": {"status": "expired"}}
+                )
+                return PremiumStatusResponse(
+                    is_premium=False,
+                    messages_used=0,
+                    messages_remaining=0
+                )
+        except:
+            pass
+    
+    # Get message count for current month
+    now = datetime.now(timezone.utc)
+    month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    
+    message_count = await db.chat_messages.count_documents({
+        "user_id": user_id,
+        "role": "user",
+        "timestamp": {"$gte": month_start.isoformat()}
+    })
+    
+    return PremiumStatusResponse(
+        is_premium=True,
+        subscription_id=subscription.get("subscription_id"),
+        expires_at=expires_at,
+        messages_used=message_count,
+        messages_remaining=max(0, MAX_MESSAGES_PER_MONTH - message_count)
+    )
+
+
+@api_router.post("/premium/checkout", response_model=CreateCheckoutResponse)
+async def create_premium_checkout(request: CreateCheckoutRequest, http_request: Request, user_id: str = "default"):
+    """Create Stripe checkout session for premium subscription"""
+    
+    if not STRIPE_API_KEY:
+        raise HTTPException(status_code=500, detail="Stripe not configured")
+    
+    # Build URLs
+    success_url = f"{request.origin_url}/settings?session_id={{CHECKOUT_SESSION_ID}}&premium=success"
+    cancel_url = f"{request.origin_url}/settings?premium=cancelled"
+    
+    # Initialize Stripe
+    webhook_url = f"{str(http_request.base_url)}api/webhook/stripe"
+    stripe_checkout = StripeCheckout(api_key=STRIPE_API_KEY, webhook_url=webhook_url)
+    
+    # Create checkout session
+    checkout_request = CheckoutSessionRequest(
+        amount=PREMIUM_PRICE_MONTHLY,
+        currency="eur",
+        success_url=success_url,
+        cancel_url=cancel_url,
+        metadata={
+            "user_id": user_id,
+            "product": "cardiocoach_premium",
+            "type": "subscription"
+        }
+    )
+    
+    try:
+        session = await stripe_checkout.create_checkout_session(checkout_request)
+        
+        # Record transaction as pending
+        await db.payment_transactions.insert_one({
+            "session_id": session.session_id,
+            "user_id": user_id,
+            "amount": PREMIUM_PRICE_MONTHLY,
+            "currency": "eur",
+            "status": "pending",
+            "product": "cardiocoach_premium",
+            "created_at": datetime.now(timezone.utc).isoformat()
+        })
+        
+        logger.info(f"Checkout session created for user {user_id}: {session.session_id}")
+        
+        return CreateCheckoutResponse(
+            checkout_url=session.url,
+            session_id=session.session_id
+        )
+    
+    except Exception as e:
+        logger.error(f"Stripe checkout error: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to create checkout: {str(e)}")
+
+
+@api_router.get("/premium/checkout/status/{session_id}")
+async def check_checkout_status(session_id: str, http_request: Request, user_id: str = "default"):
+    """Check status of a checkout session and activate premium if paid"""
+    
+    if not STRIPE_API_KEY:
+        raise HTTPException(status_code=500, detail="Stripe not configured")
+    
+    # Check if already processed
+    existing = await db.payment_transactions.find_one({"session_id": session_id})
+    if existing and existing.get("status") == "completed":
+        return {"status": "completed", "message": "Already processed"}
+    
+    # Initialize Stripe
+    webhook_url = f"{str(http_request.base_url)}api/webhook/stripe"
+    stripe_checkout = StripeCheckout(api_key=STRIPE_API_KEY, webhook_url=webhook_url)
+    
+    try:
+        status = await stripe_checkout.get_checkout_status(session_id)
+        
+        if status.payment_status == "paid":
+            # Get user_id from metadata or transaction
+            transaction = await db.payment_transactions.find_one({"session_id": session_id})
+            actual_user_id = transaction.get("user_id", user_id) if transaction else user_id
+            
+            # Update transaction
+            await db.payment_transactions.update_one(
+                {"session_id": session_id},
+                {"$set": {
+                    "status": "completed",
+                    "payment_status": status.payment_status,
+                    "completed_at": datetime.now(timezone.utc).isoformat()
+                }}
+            )
+            
+            # Create/update subscription (valid for 30 days)
+            expires_at = (datetime.now(timezone.utc) + timedelta(days=30)).isoformat()
+            
+            await db.subscriptions.update_one(
+                {"user_id": actual_user_id},
+                {"$set": {
+                    "user_id": actual_user_id,
+                    "subscription_id": session_id,
+                    "status": "active",
+                    "plan": "monthly",
+                    "amount": PREMIUM_PRICE_MONTHLY,
+                    "currency": "eur",
+                    "created_at": datetime.now(timezone.utc).isoformat(),
+                    "expires_at": expires_at
+                }},
+                upsert=True
+            )
+            
+            # Reset message counter for new month
+            await db.chat_counters.update_one(
+                {"user_id": actual_user_id},
+                {"$set": {
+                    "month": datetime.now(timezone.utc).strftime("%Y-%m"),
+                    "count": 0
+                }},
+                upsert=True
+            )
+            
+            logger.info(f"Premium activated for user {actual_user_id}")
+            
+            return {
+                "status": "completed",
+                "payment_status": status.payment_status,
+                "message": "Premium activé ! Bienvenue dans CardioCoach Premium."
+            }
+        
+        elif status.payment_status == "unpaid":
+            return {"status": "pending", "payment_status": status.payment_status}
+        
+        else:
+            # Update transaction status
+            await db.payment_transactions.update_one(
+                {"session_id": session_id},
+                {"$set": {"status": status.payment_status}}
+            )
+            return {"status": status.status, "payment_status": status.payment_status}
+    
+    except Exception as e:
+        logger.error(f"Checkout status error: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to check status: {str(e)}")
+
+
+@api_router.post("/webhook/stripe")
+async def stripe_webhook(request: Request):
+    """Handle Stripe webhooks"""
+    
+    if not STRIPE_API_KEY:
+        raise HTTPException(status_code=500, detail="Stripe not configured")
+    
+    body = await request.body()
+    signature = request.headers.get("Stripe-Signature")
+    
+    webhook_url = f"{str(request.base_url)}api/webhook/stripe"
+    stripe_checkout = StripeCheckout(api_key=STRIPE_API_KEY, webhook_url=webhook_url)
+    
+    try:
+        webhook_response = await stripe_checkout.handle_webhook(body, signature)
+        
+        logger.info(f"Stripe webhook: {webhook_response.event_type} - {webhook_response.session_id}")
+        
+        if webhook_response.payment_status == "paid":
+            # Activate premium (same logic as checkout status)
+            user_id = webhook_response.metadata.get("user_id", "default")
+            
+            await db.payment_transactions.update_one(
+                {"session_id": webhook_response.session_id},
+                {"$set": {
+                    "status": "completed",
+                    "payment_status": "paid",
+                    "webhook_event": webhook_response.event_type,
+                    "completed_at": datetime.now(timezone.utc).isoformat()
+                }}
+            )
+            
+            expires_at = (datetime.now(timezone.utc) + timedelta(days=30)).isoformat()
+            await db.subscriptions.update_one(
+                {"user_id": user_id},
+                {"$set": {
+                    "status": "active",
+                    "expires_at": expires_at
+                }},
+                upsert=True
+            )
+        
+        return {"received": True}
+    
+    except Exception as e:
+        logger.error(f"Webhook error: {e}")
+        return {"received": False, "error": str(e)}
+
+
+# ========== CHAT COACH (PREMIUM ONLY) ==========
+
+@api_router.post("/chat/send", response_model=ChatResponse)
+async def send_chat_message(request: ChatRequest):
+    """Send a message to the chat coach (premium only, 100% local)"""
+    
+    user_id = request.user_id
+    
+    # Check premium status
+    subscription = await db.subscriptions.find_one(
+        {"user_id": user_id, "status": "active"},
+        {"_id": 0}
+    )
+    
+    if not subscription:
+        raise HTTPException(
+            status_code=403,
+            detail="Cette fonctionnalité est réservée aux membres Premium. Abonne-toi pour 4.99€/mois !"
+        )
+    
+    # Check message limit
+    now = datetime.now(timezone.utc)
+    month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    
+    message_count = await db.chat_messages.count_documents({
+        "user_id": user_id,
+        "role": "user",
+        "timestamp": {"$gte": month_start.isoformat()}
+    })
+    
+    can_send, limit_message = check_message_limit(message_count, MAX_MESSAGES_PER_MONTH)
+    if not can_send:
+        raise HTTPException(status_code=429, detail=limit_message)
+    
+    # Get user's recent workouts for context
+    workouts = await db.workouts.find({}, {"_id": 0}).sort("date", -1).to_list(50)
+    if not workouts:
+        workouts = get_mock_workouts()
+    
+    # Get user goal
+    user_goal = await db.user_goals.find_one({"user_id": user_id}, {"_id": 0})
+    
+    # Generate response using local chat engine (NO LLM)
+    response_text = generate_chat_response(
+        message=request.message,
+        workouts=workouts,
+        user_goal=user_goal
+    )
+    
+    # Store user message
+    user_msg_id = str(uuid.uuid4())
+    await db.chat_messages.insert_one({
+        "id": user_msg_id,
+        "user_id": user_id,
+        "role": "user",
+        "content": request.message,
+        "timestamp": now.isoformat()
+    })
+    
+    # Store assistant response
+    assistant_msg_id = str(uuid.uuid4())
+    await db.chat_messages.insert_one({
+        "id": assistant_msg_id,
+        "user_id": user_id,
+        "role": "assistant",
+        "content": response_text,
+        "timestamp": now.isoformat()
+    })
+    
+    messages_remaining = get_remaining_messages(message_count + 1, MAX_MESSAGES_PER_MONTH)
+    
+    logger.info(f"Chat message processed for user {user_id}. Remaining: {messages_remaining}")
+    
+    return ChatResponse(
+        response=response_text,
+        message_id=assistant_msg_id,
+        messages_remaining=messages_remaining
+    )
+
+
+@api_router.get("/chat/history")
+async def get_chat_history(user_id: str = "default", limit: int = 50):
+    """Get chat history for a user"""
+    
+    messages = await db.chat_messages.find(
+        {"user_id": user_id},
+        {"_id": 0}
+    ).sort("timestamp", -1).limit(limit).to_list(limit)
+    
+    # Reverse to chronological order
+    messages.reverse()
+    
+    return messages
+
+
+@api_router.delete("/chat/history")
+async def clear_chat_history(user_id: str = "default"):
+    """Clear chat history for a user"""
+    
+    result = await db.chat_messages.delete_many({"user_id": user_id})
+    
+    logger.info(f"Chat history cleared for user {user_id}: {result.deleted_count} messages")
+    
+    return {"success": True, "deleted_count": result.deleted_count}
+
+
 # Include the router
 app.include_router(api_router)
 
