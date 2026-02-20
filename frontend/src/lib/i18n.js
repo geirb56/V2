@@ -353,6 +353,7 @@ export const translations = {
       pace: "Allure",
       speed: "Vitesse",
       avgHr: "FC Moy",
+      hrZones: "Zones Cardiaques",
       coachInsight: "Coach",
       viewDetailedAnalysis: "Voir l'analyse detaillee",
       askCoach: "Poser une question au coach",
@@ -368,6 +369,21 @@ export const translations = {
         sustained: "Soutenu",
         hard: "Difficile",
       },
+    },
+    
+    // Heart Rate Zones
+    zones: {
+      recovery: "Recup",
+      endurance: "Endurance",
+      tempo: "Tempo",
+      threshold: "Seuil",
+      max: "VO2max",
+      easy: "Facile",
+      moderate: "Modere",
+      hard: "Intense",
+      dominant_easy: "Effort facile",
+      dominant_balanced: "Equilibre",
+      dominant_hard: "Haute intensite",
     },
     
     // Detailed Analysis
