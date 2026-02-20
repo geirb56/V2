@@ -269,8 +269,17 @@ def calculate_training_metrics(workouts: List[dict], user_goal: dict = None) -> 
     
     # Calculate chronic load from older workouts
     chronic_start = now - timedelta(days=28)
-    chronic_workouts = [w for w in workouts if 
-                       chronic_start <= datetime.fromisoformat(w.get("date", "2000-01-01").replace("Z", "+00:00")) < week_start]
+    chronic_workouts = []
+    for w in workouts:
+        try:
+            w_date_str = w.get("date", "2000-01-01").replace("Z", "+00:00")
+            w_date = datetime.fromisoformat(w_date_str)
+            if w_date.tzinfo is None:
+                w_date = w_date.replace(tzinfo=timezone.utc)
+            if chronic_start <= w_date < week_start:
+                chronic_workouts.append(w)
+        except:
+            continue
     chronic_km = sum(w.get("distance_km", 0) or 0 for w in chronic_workouts) / 3  # Average per week
     metrics["charge_chronic"] = round(chronic_km * 1.1) or 20
     
