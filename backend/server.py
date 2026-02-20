@@ -2936,10 +2936,8 @@ class DetailedAnalysisResponse(BaseModel):
 
 
 @api_router.get("/coach/detailed-analysis/{workout_id}")
-async def get_detailed_analysis(workout_id: str, language: str = "en", user_id: str = "default"):
-    """Get card-based detailed analysis for mobile view"""
-    if not EMERGENT_LLM_KEY:
-        raise HTTPException(status_code=500, detail="LLM key not configured")
+async def get_detailed_analysis(workout_id: str, language: str = "fr", user_id: str = "default"):
+    """Get card-based detailed analysis for mobile view - 100% LOCAL ENGINE"""
     
     # Get all workouts
     all_workouts = await db.workouts.find({}, {"_id": 0}).sort("date", -1).to_list(100)
@@ -2957,95 +2955,84 @@ async def get_detailed_analysis(workout_id: str, language: str = "en", user_id: 
     # Calculate baseline
     baseline = calculate_baseline_metrics(all_workouts, workout, days=14)
     
-    # Build workout summary with enriched data
-    workout_summary = {
-        "type": workout.get("type"),
-        "name": workout.get("name"),
-        "date": workout.get("date"),
-        "distance_km": workout.get("distance_km"),
-        "duration_min": workout.get("duration_minutes"),
-        "moving_time_min": workout.get("moving_time_minutes"),
-        "avg_hr": workout.get("avg_heart_rate"),
-        "max_hr": workout.get("max_heart_rate"),
-        "hr_zones": workout.get("effort_zone_distribution"),
-        "avg_pace_min_km": workout.get("avg_pace_min_km"),
-        "best_pace_min_km": workout.get("best_pace_min_km"),
-        "pace_variability": workout.get("pace_stats", {}).get("pace_variability") if workout.get("pace_stats") else None,
-        "avg_cadence_spm": workout.get("avg_cadence_spm"),
-        "avg_speed_kmh": workout.get("avg_speed_kmh"),
-        "max_speed_kmh": workout.get("max_speed_kmh"),
-        "elevation_m": workout.get("elevation_gain_m")
+    # Generate analysis using LOCAL ENGINE (NO LLM)
+    analysis = generate_session_analysis(workout, baseline, language)
+    
+    # Build header
+    session_type = analysis.get("metrics", {}).get("session_type", "moderate")
+    intensity_level = analysis.get("metrics", {}).get("intensity_level", "moderate")
+    
+    session_names = {
+        "easy": "Sortie facile" if language == "fr" else "Easy Run",
+        "moderate": "Sortie modérée" if language == "fr" else "Moderate Run",
+        "hard": "Séance intense" if language == "fr" else "Hard Session",
+        "very_hard": "Séance très intense" if language == "fr" else "Very Hard Session",
+        "long": "Sortie longue" if language == "fr" else "Long Run",
+        "short": "Sortie courte" if language == "fr" else "Short Run"
     }
     
-    baseline_summary = {
-        "sessions": baseline.get("workout_count", 0) if baseline else 0,
-        "avg_distance": baseline.get("avg_distance_km") if baseline else None,
-        "avg_duration": baseline.get("avg_duration_min") if baseline else None,
-        "avg_hr": baseline.get("avg_heart_rate") if baseline else None,
-        "avg_pace": baseline.get("avg_pace") if baseline else None,
-        "avg_cadence": baseline.get("avg_cadence") if baseline else None
-    } if baseline else {}
-    
-    # Generate AI analysis
-    prompt_template = DETAILED_ANALYSIS_PROMPT_FR if language == "fr" else DETAILED_ANALYSIS_PROMPT_EN
-    prompt = prompt_template.format(
-        workout_data=workout_summary,
-        baseline_data=baseline_summary
-    )
-    
-    # Default response structure
-    default_header = {
-        "context": "Session analyzed." if language == "en" else "Séance analysée.",
-        "session_name": workout.get("name", "Workout")
+    intensity_labels = {
+        "easy": "Facile" if language == "fr" else "Easy",
+        "moderate": "Modérée" if language == "fr" else "Moderate",
+        "hard": "Soutenue" if language == "fr" else "Sustained",
+        "very_hard": "Haute" if language == "fr" else "High"
     }
-    default_execution = {
-        "intensity": "Moderate" if language == "en" else "Modérée",
-        "volume": "Usual" if language == "en" else "Habituel",
-        "regularity": "Stable"
-    }
-    default_meaning = {"text": ""}
-    default_recovery = {"text": ""}
-    default_advice = {"text": ""}
-    default_advanced = {"comparisons": ""}
     
-    try:
-        chat = LlmChat(
-            api_key=EMERGENT_LLM_KEY,
-            session_id=f"detailed_analysis_{workout_id}_{language}",
-            system_message="You are a concise sports coach. Respond only in valid JSON."
-        ).with_model("openai", "gpt-5.2")
-        
-        response = await chat.send_message(UserMessage(text=prompt))
-        
-        # Parse JSON response
-        response_clean = response.strip()
-        if response_clean.startswith("```json"):
-            response_clean = response_clean[7:]
-        if response_clean.startswith("```"):
-            response_clean = response_clean[3:]
-        if response_clean.endswith("```"):
-            response_clean = response_clean[:-3]
-        
-        import json
-        analysis_data = json.loads(response_clean.strip())
-        
-        header = analysis_data.get("header", default_header)
-        execution = analysis_data.get("execution", default_execution)
-        meaning = analysis_data.get("meaning", default_meaning)
-        recovery = analysis_data.get("recovery", default_recovery)
-        advice = analysis_data.get("advice", default_advice)
-        advanced = analysis_data.get("advanced", default_advanced)
-        
-        logger.info(f"Detailed analysis generated for workout {workout_id} in {language}")
-        
-    except Exception as e:
-        logger.error(f"Detailed analysis AI error: {e}")
-        header = default_header
-        execution = default_execution
-        meaning = default_meaning
-        recovery = default_recovery
-        advice = default_advice
-        advanced = default_advanced
+    # Calculate volume comparison
+    distance = workout.get("distance_km", 0)
+    avg_distance = baseline.get("avg_distance_km", distance) if baseline else distance
+    
+    if distance > avg_distance * 1.2:
+        volume = "Plus long" if language == "fr" else "Longer"
+    elif distance < avg_distance * 0.8:
+        volume = "Plus court" if language == "fr" else "Shorter"
+    else:
+        volume = "Habituel" if language == "fr" else "Usual"
+    
+    # Check pace regularity
+    pace_stats = workout.get("pace_stats", {})
+    variability = pace_stats.get("pace_variability", 0) if pace_stats else 0
+    regularity = "Variable" if variability > 0.5 else "Stable"
+    
+    header = {
+        "context": analysis["summary"],
+        "session_name": session_names.get(session_type, workout.get("name", "Séance"))
+    }
+    
+    execution = {
+        "intensity": intensity_labels.get(intensity_level, "Modérée"),
+        "volume": volume,
+        "regularity": regularity
+    }
+    
+    meaning = {"text": analysis["meaning"]}
+    recovery = {"text": analysis["recovery"]}
+    advice = {"text": analysis["advice"]}
+    
+    # Build advanced comparisons
+    comparison_parts = []
+    zones = analysis.get("metrics", {}).get("zones", {})
+    if zones:
+        easy_pct = zones.get("easy", 0)
+        hard_pct = zones.get("hard", 0)
+        if language == "fr":
+            comparison_parts.append(f"{easy_pct}% du temps en zone facile, {hard_pct}% en zone intense.")
+        else:
+            comparison_parts.append(f"{easy_pct}% time in easy zone, {hard_pct}% in hard zone.")
+    
+    if baseline and baseline.get("comparison"):
+        hr_comp = baseline["comparison"].get("heart_rate_vs_baseline", {})
+        if hr_comp:
+            diff = hr_comp.get("difference_bpm", 0)
+            if abs(diff) > 3:
+                if language == "fr":
+                    comparison_parts.append(f"FC {'+' if diff > 0 else ''}{diff:.0f} bpm vs baseline.")
+                else:
+                    comparison_parts.append(f"HR {'+' if diff > 0 else ''}{diff:.0f} bpm vs baseline.")
+    
+    advanced = {"comparisons": " ".join(comparison_parts) if comparison_parts else ""}
+    
+    logger.info(f"Detailed analysis generated (LOCAL) for workout {workout_id}")
     
     return DetailedAnalysisResponse(
         workout_id=workout_id,
