@@ -3013,10 +3013,8 @@ def calculate_mobile_signals(workout: dict, baseline: dict) -> dict:
 
 
 @api_router.get("/coach/workout-analysis/{workout_id}")
-async def get_mobile_workout_analysis(workout_id: str, language: str = "en", user_id: str = "default"):
-    """Get mobile-first workout analysis with coach summary and signals"""
-    if not EMERGENT_LLM_KEY:
-        raise HTTPException(status_code=500, detail="LLM key not configured")
+async def get_mobile_workout_analysis(workout_id: str, language: str = "fr", user_id: str = "default"):
+    """Get mobile-first workout analysis with coach summary and signals - 100% LOCAL ENGINE"""
     
     # Get all workouts
     all_workouts = await db.workouts.find({}, {"_id": 0}).sort("date", -1).to_list(100)
