@@ -396,6 +396,32 @@ User should always know: "Am I doing too much?", "Am I doing too little?", "What
    - Only syncs if last sync was >1 hour ago
    - Silent failure (doesn't disrupt UX)
 
+### Phase 16 - HR ZONES VISUALIZATION (Feb 20, 2026) ✅
+**Visual representation of heart rate zone distribution in workout detail**
+
+**What Changed:**
+
+1. **New UI Components in `WorkoutDetail.jsx`:**
+   - `HRZonesChart` - Horizontal bar chart with colored zones
+   - `ZoneSummary` - Aggregated easy/moderate/hard percentages
+
+2. **Zone Colors:**
+   - Z1 (Recovery): Blue #3B82F6
+   - Z2 (Endurance): Green #22C55E
+   - Z3 (Tempo): Yellow #EAB308
+   - Z4 (Threshold): Orange #F97316
+   - Z5 (VO2max): Red #EF4444
+
+3. **Zone Summary:**
+   - Shows Easy (Z1+Z2), Moderate (Z3), Hard (Z4+Z5) percentages
+   - Badge indicating dominant effort type
+
+4. **Translations Added:**
+   - English and French labels for all zones
+   - `zones.recovery`, `zones.endurance`, `zones.tempo`, `zones.threshold`, `zones.max`
+   - `zones.easy`, `zones.moderate`, `zones.hard`
+   - `zones.dominant_easy`, `zones.dominant_balanced`, `zones.dominant_hard`
+
 **Template Categories:**
 - `SUMMARY_TEMPLATES` - Session summaries (easy/moderate/hard/long/short)
 - `EXECUTION_TEMPLATES` - Execution descriptions with placeholders
