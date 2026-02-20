@@ -3064,44 +3064,12 @@ async def get_mobile_workout_analysis(workout_id: str, language: str = "en", use
         "avg_cadence": baseline.get("avg_cadence") if baseline else None
     } if baseline else {}
     
-    # Generate AI analysis
-    prompt_template = MOBILE_ANALYSIS_PROMPT_FR if language == "fr" else MOBILE_ANALYSIS_PROMPT_EN
-    prompt = prompt_template.format(
-        workout_data=workout_summary,
-        baseline_data=baseline_summary
-    )
+    # Generate analysis using LOCAL ENGINE (NO LLM - Strava compliant)
+    analysis = generate_session_analysis(workout, baseline, language)
     
-    coach_summary = ""
-    insight = None
-    guidance = None
-    
-    try:
-        chat = LlmChat(
-            api_key=EMERGENT_LLM_KEY,
-            session_id=f"mobile_analysis_{workout_id}",
-            system_message="You are a concise running/cycling coach. Respond only in valid JSON."
-        ).with_model("openai", "gpt-5.2")
-        
-        response = await chat.send_message(UserMessage(text=prompt))
-        
-        # Parse JSON response
-        response_clean = response.strip()
-        if response_clean.startswith("```json"):
-            response_clean = response_clean[7:]
-        if response_clean.startswith("```"):
-            response_clean = response_clean[3:]
-        if response_clean.endswith("```"):
-            response_clean = response_clean[:-3]
-        
-        import json
-        analysis_data = json.loads(response_clean.strip())
-        coach_summary = analysis_data.get("coach_summary", "")
-        insight = analysis_data.get("insight")
-        guidance = analysis_data.get("guidance")
-        
-    except Exception as e:
-        logger.error(f"Mobile analysis AI error: {e}")
-        coach_summary = "Session analyzed." if language == "en" else "Seance analysee."
+    coach_summary = analysis["summary"]
+    insight = analysis["meaning"]
+    guidance = analysis["advice"]
     
     return MobileAnalysisResponse(
         workout_id=workout_id,
