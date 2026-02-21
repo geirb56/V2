@@ -174,38 +174,17 @@ const ChatCoach = ({ isOpen, onClose, userId = "default" }) => {
       let responseText = "";
       let usedLocalLLM = false;
       
-      // Try WebLLM first if available (with timeout)
-      if (modelLoaded) {
-        try {
-          console.log("Generating with WebLLM...");
-          responseText = await generateLocalResponse(userMessage);
-          usedLocalLLM = true;
-          console.log("WebLLM response received");
-        } catch (llmErr) {
-          console.error("WebLLM generation error, falling back to server:", llmErr);
-          // Will fallback to server response
-        }
-      }
+      // WebLLM disabled - small models produce incoherent responses
+      // Always use the backend Python engine which provides quality responses
       
-      // Always send to backend (for message counting and fallback)
+      // Send to backend
       const res = await axios.post(`${API}/chat/send`, {
         message: userMessage,
         user_id: userId,
-        use_local_llm: usedLocalLLM
+        use_local_llm: false
       });
 
-      // Use server response if local failed or wasn't used
-      if (!responseText) {
-        responseText = res.data.response;
-        console.log("Using server fallback response");
-      } else {
-        // Store local response on server for history
-        try {
-          await axios.post(`${API}/chat/store-response?user_id=${userId}&message_id=${res.data.message_id}&response=${encodeURIComponent(responseText)}`);
-        } catch (storeErr) {
-          console.error("Error storing response:", storeErr);
-        }
-      }
+      responseText = res.data.response;
 
       const assistantMsg = {
         id: res.data.message_id,
