@@ -33,7 +33,6 @@ export const Layout = () => {
   const navItems = [
     { path: "/", icon: Home, labelKey: "nav.dashboard" },
     { path: "/digest", icon: CalendarDays, labelKey: "nav.digest" },
-    { path: "/coach", icon: MessageSquare, labelKey: "nav.coach" },
     { path: "/progress", icon: BarChart3, labelKey: "nav.progress" },
     { path: "/settings", icon: Settings, labelKey: "nav.settings" },
   ];
