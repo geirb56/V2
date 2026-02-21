@@ -238,20 +238,34 @@ export const WebLLMProvider = ({ children }) => {
     localStorage.setItem("webllm_banner_dismissed", "true");
   }, []);
   
-  // Generate response
+  // Generate response with timeout
   const generateResponse = useCallback(async (messages, options = {}) => {
     if (!engineRef.current || !modelLoaded) {
       throw new Error("Modèle non chargé");
     }
     
-    const response = await engineRef.current.chat.completions.create({
+    const timeout = options.timeout || 30000; // 30 seconds default timeout
+    
+    // Create a promise that rejects after timeout
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error("Timeout: génération trop longue")), timeout);
+    });
+    
+    // Race between generation and timeout
+    const generationPromise = engineRef.current.chat.completions.create({
       messages,
       max_tokens: options.maxTokens || 300,
       temperature: options.temperature || 0.7,
       top_p: options.topP || 0.9,
     });
     
-    return response.choices[0].message.content;
+    try {
+      const response = await Promise.race([generationPromise, timeoutPromise]);
+      return response.choices[0].message.content;
+    } catch (err) {
+      console.error("WebLLM generation error:", err);
+      throw err;
+    }
   }, [modelLoaded]);
   
   // Context value
