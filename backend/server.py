@@ -51,8 +51,44 @@ db = client[os.environ['DB_NAME']]
 
 # Stripe configuration
 STRIPE_API_KEY = os.environ.get('STRIPE_API_KEY', '')
-PREMIUM_PRICE_MONTHLY = 4.99  # EUR
-MAX_MESSAGES_PER_MONTH = 30
+
+# Subscription tiers configuration
+SUBSCRIPTION_TIERS = {
+    "free": {
+        "name": "Gratuit",
+        "price_monthly": 0,
+        "price_annual": 0,
+        "messages_limit": 10,
+        "description": "Découverte"
+    },
+    "starter": {
+        "name": "Starter",
+        "price_monthly": 4.99,
+        "price_annual": 49.99,
+        "messages_limit": 25,
+        "description": "Pour débuter"
+    },
+    "confort": {
+        "name": "Confort",
+        "price_monthly": 5.99,
+        "price_annual": 59.99,
+        "messages_limit": 50,
+        "description": "Usage régulier"
+    },
+    "pro": {
+        "name": "Pro",
+        "price_monthly": 9.99,
+        "price_annual": 99.99,
+        "messages_limit": 150,  # Soft limit (fair-use)
+        "unlimited": True,
+        "description": "Illimité"
+    }
+}
+
+def get_message_limit(tier: str) -> int:
+    """Get message limit for a subscription tier"""
+    tier_config = SUBSCRIPTION_TIERS.get(tier, SUBSCRIPTION_TIERS["free"])
+    return tier_config.get("messages_limit", 10)
 
 # Garmin OAuth Configuration (placeholder - replace with real credentials)
 GARMIN_CLIENT_ID = os.environ.get('GARMIN_CLIENT_ID', '')
