@@ -472,11 +472,60 @@ User should always know: "Am I doing too much?", "Am I doing too little?", "What
 
 ## Prioritized Backlog
 
+### Phase 17 - MULTI-TIER SUBSCRIPTION + HYBRID CHAT (Feb 21, 2026) ✅
+**Complete subscription system with 4 tiers and hybrid WebLLM/fallback chat**
+
+**Subscription Tiers:**
+| Tier | Price/Month | Price/Year | Messages/Month |
+|------|-------------|------------|----------------|
+| Free | 0€ | 0€ | 10 |
+| Starter | 4.99€ | 49.99€ | 25 |
+| Confort | 5.99€ | 59.99€ (Populaire) | 50 |
+| Pro | 9.99€ | 99.99€ | Illimité |
+
+**Subscription Features:**
+- `/api/subscription/tiers` - Returns all tier configurations
+- `/api/subscription/status` - Returns user's current tier, messages used/remaining
+- `/api/subscription/checkout` - Creates Stripe checkout session
+- Monthly/Annual toggle with -17% discount badge
+- Stripe integration (test mode: sk_test_emergent)
+
+**Hybrid Chat Coach:**
+1. **Primary: WebLLM (SmolLM2 1.7B-Instruct)**
+   - On-device AI inference using WebGPU
+   - 100% private, offline after initial download
+   - ~1.3GB model download (one-time)
+   - Available for premium users with WebGPU-capable browsers
+
+2. **Fallback: Python Rule-Based Engine**
+   - `/app/backend/chat_engine.py`
+   - Keyword detection + template-based responses
+   - Works for all users and browsers
+   - French-first, coach tone
+
+**Chat Engine Features:**
+- Keyword categories: fatigue, allure, cadence, recuperation, plan, blessure, objectif, zones, semaine
+- Template-based responses with dynamic metrics
+- Training context from recent workouts
+- Message counting per tier
+
+**UI Components:**
+- `/app/frontend/src/pages/Subscription.jsx` - 4-tier subscription grid
+- `/app/frontend/src/components/ChatCoach.jsx` - Hybrid chat with WebLLM
+- Status indicators: "Local" (WebGPU), "Serveur" (fallback), "GPU" (available)
+
+**Technical Notes:**
+- babel-metadata-plugin.js excludes Subscription.jsx and Progress.jsx to prevent infinite recursion
+- @mlc-ai/web-llm v0.2.81 installed for WebLLM support
+
+**Test Report:** `/app/test_reports/iteration_18.json` (100% pass rate - backend + frontend)
+
 ### P0 - Completed ✅
 - ✅ Strava API integration structure
 - ✅ Weekly Digest + Executive Summary
 - ✅ **LOCAL ANALYSIS ENGINE (Feb 20, 2026)** - CRITICAL MIGRATION COMPLETE
-- ✅ **CHAT COACH PREMIUM (Feb 20, 2026)** - 100% local, Stripe integration
+- ✅ **MULTI-TIER SUBSCRIPTION (Feb 21, 2026)** - 4 tiers, Stripe integration
+- ✅ **HYBRID CHAT COACH (Feb 21, 2026)** - WebLLM + Python fallback
 
 ### P1 - High Priority (Next)
 - Add real Strava API credentials to enable actual workout import
@@ -494,7 +543,7 @@ User should always know: "Am I doing too much?", "Am I doing too little?", "What
 ### P3 - Nice to Have
 - Additional languages (German, Spanish)
 - Apple Health/Google Fit sync
-- Conversational coach with local LLM (Ollama) - premium feature
+- Improved WebLLM model loading (background download, pause/resume)
 
 ### Deprioritized
 - Garmin activation (dormant)
