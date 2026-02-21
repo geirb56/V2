@@ -198,26 +198,31 @@ ${trainingContext.derniere_seance ? `- Dernière séance: ${trainingContext.dern
       let responseText = "";
       let usedLocalLLM = false;
       
-      // Try WebLLM first if available
+      // Try WebLLM first if available (with timeout)
       if (modelLoaded) {
         try {
+          console.log("Generating with WebLLM...");
           responseText = await generateLocalResponse(userMessage);
           usedLocalLLM = true;
+          console.log("WebLLM response received");
         } catch (llmErr) {
-          console.error("WebLLM generation error:", llmErr);
+          console.error("WebLLM generation error, falling back to server:", llmErr);
+          // Will fallback to server response
         }
       }
       
-      // Send to backend
+      // Always send to backend (for message counting and fallback)
       const res = await axios.post(`${API}/chat/send`, {
         message: userMessage,
         user_id: userId,
         use_local_llm: usedLocalLLM
       });
 
-      // Use server response if local failed
+      // Use server response if local failed or wasn't used
       if (!responseText) {
         responseText = res.data.response;
+        console.log("Using server fallback response");
+      }
       } else {
         // Store local response on server
         try {
