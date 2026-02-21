@@ -3740,54 +3740,20 @@ async def create_subscription_checkout(request: CreateCheckoutRequest, http_requ
 
 # Keep old endpoint for backward compatibility
 @api_router.post("/premium/checkout", response_model=CreateCheckoutResponse)
-async def create_premium_checkout(request: CreateCheckoutRequest, http_request: Request, user_id: str = "default"):
+async def create_premium_checkout_compat(request: CreateCheckoutRequest, http_request: Request, user_id: str = "default"):
     """Create Stripe checkout session (backward compat)"""
-    # Convert old request to new format
+    # Convert old request to new format - default to starter monthly
     new_request = CreateCheckoutRequest(
         origin_url=request.origin_url,
-        tier="starter",
-        billing_period="monthly"
+        tier=getattr(request, 'tier', 'starter'),
+        billing_period=getattr(request, 'billing_period', 'monthly')
     )
     return await create_subscription_checkout(new_request, http_request, user_id)
-        currency="eur",
-        success_url=success_url,
-        cancel_url=cancel_url,
-        metadata={
-            "user_id": user_id,
-            "product": "cardiocoach_premium",
-            "type": "subscription"
-        }
-    )
-    
-    try:
-        session = await stripe_checkout.create_checkout_session(checkout_request)
-        
-        # Record transaction as pending
-        await db.payment_transactions.insert_one({
-            "session_id": session.session_id,
-            "user_id": user_id,
-            "amount": PREMIUM_PRICE_MONTHLY,
-            "currency": "eur",
-            "status": "pending",
-            "product": "cardiocoach_premium",
-            "created_at": datetime.now(timezone.utc).isoformat()
-        })
-        
-        logger.info(f"Checkout session created for user {user_id}: {session.session_id}")
-        
-        return CreateCheckoutResponse(
-            checkout_url=session.url,
-            session_id=session.session_id
-        )
-    
-    except Exception as e:
-        logger.error(f"Stripe checkout error: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to create checkout: {str(e)}")
 
 
-@api_router.get("/premium/checkout/status/{session_id}")
-async def check_checkout_status(session_id: str, http_request: Request, user_id: str = "default"):
-    """Check status of a checkout session and activate premium if paid"""
+@api_router.get("/subscription/checkout/status/{session_id}")
+async def check_subscription_status(session_id: str, http_request: Request, user_id: str = "default"):
+    """Check status of a checkout session and activate subscription if paid"""
     
     if not STRIPE_API_KEY:
         raise HTTPException(status_code=500, detail="Stripe not configured")
@@ -3798,6 +3764,80 @@ async def check_checkout_status(session_id: str, http_request: Request, user_id:
         return {"status": "completed", "message": "Already processed"}
     
     # Initialize Stripe
+    webhook_url = f"{str(http_request.base_url)}api/webhook/stripe"
+    stripe_checkout = StripeCheckout(api_key=STRIPE_API_KEY, webhook_url=webhook_url)
+    
+    try:
+        status = await stripe_checkout.get_checkout_status(session_id)
+        
+        if status.payment_status == "paid":
+            # Get tier and billing from transaction
+            transaction = await db.payment_transactions.find_one({"session_id": session_id})
+            actual_user_id = transaction.get("user_id", user_id) if transaction else user_id
+            tier = transaction.get("tier", "starter") if transaction else "starter"
+            billing_period = transaction.get("billing_period", "monthly") if transaction else "monthly"
+            
+            # Update transaction
+            await db.payment_transactions.update_one(
+                {"session_id": session_id},
+                {"$set": {
+                    "status": "completed",
+                    "payment_status": status.payment_status,
+                    "completed_at": datetime.now(timezone.utc).isoformat()
+                }}
+            )
+            
+            # Calculate expiration (30 days for monthly, 365 for annual)
+            days = 365 if billing_period == "annual" else 30
+            expires_at = (datetime.now(timezone.utc) + timedelta(days=days)).isoformat()
+            
+            # Create/update subscription
+            await db.subscriptions.update_one(
+                {"user_id": actual_user_id},
+                {"$set": {
+                    "user_id": actual_user_id,
+                    "subscription_id": session_id,
+                    "tier": tier,
+                    "billing_period": billing_period,
+                    "status": "active",
+                    "amount": transaction.get("amount") if transaction else 0,
+                    "currency": "eur",
+                    "created_at": datetime.now(timezone.utc).isoformat(),
+                    "expires_at": expires_at
+                }},
+                upsert=True
+            )
+            
+            tier_name = SUBSCRIPTION_TIERS.get(tier, {}).get("name", "Starter")
+            logger.info(f"Subscription activated for user {actual_user_id}: {tier} ({billing_period})")
+            
+            return {
+                "status": "completed",
+                "payment_status": status.payment_status,
+                "tier": tier,
+                "message": f"Abonnement {tier_name} activé ! Bienvenue dans CardioCoach."
+            }
+        
+        elif status.payment_status == "unpaid":
+            return {"status": "pending", "payment_status": status.payment_status}
+        
+        else:
+            await db.payment_transactions.update_one(
+                {"session_id": session_id},
+                {"$set": {"status": status.payment_status}}
+            )
+            return {"status": status.status, "payment_status": status.payment_status}
+    
+    except Exception as e:
+        logger.error(f"Checkout status error: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to check status: {str(e)}")
+
+
+# Backward compat endpoint
+@api_router.get("/premium/checkout/status/{session_id}")
+async def check_checkout_status_compat(session_id: str, http_request: Request, user_id: str = "default"):
+    """Check checkout status (backward compat)"""
+    return await check_subscription_status(session_id, http_request, user_id)
     webhook_url = f"{str(http_request.base_url)}api/webhook/stripe"
     stripe_checkout = StripeCheckout(api_key=STRIPE_API_KEY, webhook_url=webhook_url)
     
