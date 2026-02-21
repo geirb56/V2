@@ -9,6 +9,7 @@ import Progress from "@/pages/Progress";
 import Guidance from "@/pages/Guidance";
 import Digest from "@/pages/Digest";
 import Settings from "@/pages/Settings";
+import Subscription from "@/pages/Subscription";
 import Layout from "@/components/Layout";
 
 function App() {
@@ -26,6 +27,7 @@ function App() {
               <Route path="guidance" element={<Guidance />} />
               <Route path="digest" element={<Digest />} />
               <Route path="settings" element={<Settings />} />
+              <Route path="subscription" element={<Subscription />} />
             </Route>
           </Routes>
         </BrowserRouter>
