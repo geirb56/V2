@@ -1893,6 +1893,12 @@ const babelMetadataPlugin = ({ types: t }) => {
 
       // Add metadata to native HTML elements (lowercase JSX)
       JSXOpeningElement(jsxPath, state) {
+        // Skip problematic files that cause infinite recursion
+        const filename = state.filename || state.file?.opts?.filename || "";
+        if (filename.includes("Subscription.jsx") || filename.includes("Progress.jsx")) {
+          return;
+        }
+        
         if (!jsxPath.node.name || !jsxPath.node.name.name) {
           return;
         }
