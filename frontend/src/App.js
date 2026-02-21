@@ -3,7 +3,6 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Toaster } from "@/components/ui/sonner";
 import { LanguageProvider } from "@/context/LanguageContext";
 import Dashboard from "@/pages/Dashboard";
-import Coach from "@/pages/Coach";
 import WorkoutDetail from "@/pages/WorkoutDetail";
 import DetailedAnalysis from "@/pages/DetailedAnalysis";
 import Progress from "@/pages/Progress";
@@ -21,7 +20,6 @@ function App() {
           <Routes>
             <Route path="/" element={<Layout />}>
               <Route index element={<Dashboard />} />
-              <Route path="coach" element={<Coach />} />
               <Route path="workout/:id" element={<WorkoutDetail />} />
               <Route path="workout/:id/analysis" element={<DetailedAnalysis />} />
               <Route path="progress" element={<Progress />} />
