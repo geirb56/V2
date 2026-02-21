@@ -1634,8 +1634,8 @@ const babelMetadataPlugin = ({ types: t }) => {
       // Add metadata attributes to React components (capitalized JSX)
       JSXElement(jsxPath, state) {
         // Skip problematic files that cause infinite recursion
-        const filename = state.filename || state.file?.opts?.filename || "";
-        if (filename.includes("Subscription.jsx") || filename.includes("Progress.jsx")) {
+        const currentFilePath = state.filename || state.file?.opts?.filename || "";
+        if (currentFilePath.includes("Subscription.jsx") || currentFilePath.includes("Progress.jsx")) {
           return;
         }
         const openingElement = jsxPath.node.openingElement;
