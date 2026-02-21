@@ -4,8 +4,8 @@ import { createContext, useContext, useState, useEffect, useRef, useCallback } f
 const WebLLMContext = createContext(null);
 
 // Model configuration - Use q4f32 variant for better compatibility (no shader-f16 required)
-const MODEL_ID = "SmolLM2-360M-Instruct-q4f32_1-MLC";
-const MODEL_SIZE_GB = 0.6;
+const MODEL_ID = "SmolLM2-1.7B-Instruct-q4f32_1-MLC";
+const MODEL_SIZE_GB = 2.7;
 
 // LocalStorage keys
 const STORAGE_KEYS = {
