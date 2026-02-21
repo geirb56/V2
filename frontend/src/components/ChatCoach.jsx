@@ -491,10 +491,17 @@ ${trainingContext.derniere_seance ? `- Dernière séance: ${trainingContext.dern
               {loading && (
                 <div className="flex justify-start">
                   <div className="bg-muted rounded-2xl rounded-bl-sm px-4 py-3">
-                    <div className="flex items-center gap-1">
-                      <div className="w-2 h-2 bg-muted-foreground/50 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
-                      <div className="w-2 h-2 bg-muted-foreground/50 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
-                      <div className="w-2 h-2 bg-muted-foreground/50 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+                    <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1">
+                        <div className="w-2 h-2 bg-muted-foreground/50 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
+                        <div className="w-2 h-2 bg-muted-foreground/50 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
+                        <div className="w-2 h-2 bg-muted-foreground/50 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+                      </div>
+                      {modelLoaded && (
+                        <span className="text-[9px] text-muted-foreground ml-1">
+                          Génération locale...
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
