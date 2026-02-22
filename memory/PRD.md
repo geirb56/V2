@@ -634,4 +634,59 @@ GARMIN_REDIRECT_URI=
 ## Testing
 - Unit tests: `/app/backend/tests/`
 - Test reports: `/app/test_reports/`
-- Latest: `iteration_17.json` - Enhanced Goal with pace calculation (100% pass rate)
+- Latest: `iteration_19.json` - RAG Analytics Engine bug fix (100% pass rate)
+
+## RAG Engine Endpoints
+```
+GET /api/rag/dashboard
+Response:
+{
+  "rag_summary": "T'es sur une super lancée ! 💪 ...",
+  "metrics": {
+    "km_total": 69.0,
+    "nb_seances": 7,
+    "allure_moy": "6:40",
+    "cadence_moy": 167,
+    "duree_totale": "7h51",
+    "ratio": 1.06,
+    "zones": {"z1": 3, "z2": 18, "z3": 63, "z4": 16, "z5": 0},
+    "km_par_seance": 9.9
+  },
+  "points_forts": ["régularité", "progression en allure"],
+  "points_ameliorer": ["varier les intensités"],
+  "tips": ["Courir en groupe motive et fait progresser"],
+  "generated_at": "2025-12-..."
+}
+
+GET /api/rag/weekly-review
+Response:
+{
+  "rag_summary": "Semaine correcte, y'a du positif ! ...",
+  "metrics": { ... },
+  "comparison": {
+    "vs_prev_week": "+61% vs semaine dernière",
+    "km_prev": 16.2,
+    "km_current": 26.1
+  },
+  ...
+}
+
+GET /api/rag/workout/{workout_id}
+Response:
+{
+  "rag_summary": "T'as géré cette sortie ! 🔥 ...",
+  "workout": {
+    "km": 8.6,
+    "duree": "1h00",
+    "allure": "6:59",
+    "cadence": 165,
+    "zones": { ... }
+  },
+  "comparison": {
+    "similar_found": 3,
+    "progression": "46 sec/km plus lent",
+    "date_precedente": "2026-02-16"
+  },
+  ...
+}
+```
