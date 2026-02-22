@@ -533,6 +533,44 @@ User should always know: "Am I doing too much?", "Am I doing too little?", "What
 - `/app/backend/server.py` - Added `/api/coach/digest/history` endpoint
 - `/app/frontend/src/pages/Digest.jsx` - Added history tab and view
 
+### Phase 19 - RAG ANALYTICS ENGINE (Dec 2025) ✅
+**Moteur RAG pour analytics enrichis sans LLM**
+
+**Objective:** Appliquer l'architecture RAG (Retrieval-Augmented Generation) à tous les analytics de l'application pour des insights personnalisés et variés, 100% déterministe sans LLM.
+
+**What Changed:**
+
+1. **New RAG Engine** (`/app/backend/rag_engine.py`)
+   - 100% Python, no external dependencies
+   - Template-based text generation with varied French coaching tone
+   - Uses workout history + previous bilans + static knowledge base
+   - Functions:
+     - `generate_dashboard_rag()` - RAG-enriched dashboard summary
+     - `generate_weekly_review_rag()` - RAG-enriched weekly review
+     - `generate_workout_analysis_rag()` - RAG-enriched workout analysis
+     - `calculate_metrics()` - Metrics calculation with proper date handling
+     - `detect_points_forts_ameliorer()` - Strengths/weaknesses detection
+     - `retrieve_similar_workouts()` - Find similar workouts for comparison
+     - `retrieve_relevant_tips()` - Get tips from knowledge base
+
+2. **New API Endpoints:**
+   - `/api/rag/dashboard` - RAG-enriched dashboard summary (69.0 km, 7 sessions, 6:40/km)
+   - `/api/rag/weekly-review` - RAG-enriched weekly review with comparison (+61% vs last week)
+   - `/api/rag/workout/{id}` - RAG-enriched individual workout analysis
+
+3. **Bug Fixes Applied:**
+   - Fixed user_id filtering: workouts in DB have `user_id=None`, endpoints now use empty filter
+   - Fixed date filtering: uses most recent workout date as reference instead of datetime.now()
+   - Fixed duration calculation: handles both `duration_seconds` and `duration_minutes`
+
+4. **Template Categories (French):**
+   - `DASHBOARD_TEMPLATES` - Intros (good/moderate/low), analyses, points forts/améliorer, conseils, relances
+   - `WEEKLY_TEMPLATES` - Intros (good/moderate/light), analyses, comparisons, conseils
+   - `WORKOUT_TEMPLATES` - Intros (great/good/tough), analyses, zones, comparisons
+   - `*_CONDITIONALS` - Conditional messages (ratio high, progression, fatigue)
+
+**Test Report:** `/app/test_reports/iteration_19.json` (100% pass rate - 23/23 tests)
+
 ### P0 - Completed ✅
 - ✅ Strava API integration structure
 - ✅ Weekly Digest + Executive Summary
@@ -540,8 +578,10 @@ User should always know: "Am I doing too much?", "Am I doing too little?", "What
 - ✅ **MULTI-TIER SUBSCRIPTION (Feb 21, 2026)** - 4 tiers, Stripe integration
 - ✅ **CHAT COACH (Feb 21, 2026)** - Python rule-based engine
 - ✅ **WEEKLY REVIEW HISTORY (Feb 22, 2026)** - Historique des bilans
+- ✅ **RAG ANALYTICS ENGINE (Dec 2025)** - RAG for dashboard, weekly, workout
 
 ### P1 - High Priority (Next)
+- Integrate RAG endpoints into frontend components (Dashboard, Digest, WorkoutDetail)
 - Allow user to configure personal max HR in Settings
 
 ### P2 - Medium Priority
