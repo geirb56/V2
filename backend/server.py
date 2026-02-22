@@ -2668,6 +2668,23 @@ async def get_latest_digest(user_id: str = "default"):
     return digest
 
 
+@api_router.get("/coach/digest/history")
+async def get_digest_history(user_id: str = "default", limit: int = 10, skip: int = 0):
+    """Get history of weekly digests for a user"""
+    digests = await db.digests.find(
+        {"user_id": user_id},
+        {"_id": 0}
+    ).sort("generated_at", -1).skip(skip).limit(limit).to_list(length=limit)
+    
+    total = await db.digests.count_documents({"user_id": user_id})
+    
+    return {
+        "digests": digests,
+        "total": total,
+        "has_more": skip + len(digests) < total
+    }
+
+
 # ========== MOBILE-FIRST WORKOUT ANALYSIS ==========
 
 MOBILE_ANALYSIS_PROMPT_EN = """You are a calm running coach giving quick feedback on a workout.
