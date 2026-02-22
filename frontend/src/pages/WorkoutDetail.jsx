@@ -378,6 +378,78 @@ export default function WorkoutDetail() {
         </Card>
       )}
 
+      {/* RAG ENRICHED ANALYSIS - NEW */}
+      {ragAnalysis && (
+        <Card className="bg-card border-border mb-3" data-testid="rag-workout-card">
+          <CardContent className="p-3">
+            <div className="flex items-center gap-2 mb-2">
+              <Sparkles className="w-4 h-4 text-amber-400" />
+              <p className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground">
+                {lang === "fr" ? "Analyse RAG" : "RAG Analysis"}
+              </p>
+            </div>
+            
+            {/* RAG Summary - first few lines */}
+            <p className="font-mono text-xs text-muted-foreground leading-relaxed mb-3 whitespace-pre-line" data-testid="rag-workout-summary">
+              {ragAnalysis.rag_summary?.split('\n').slice(0, 4).join('\n')}
+            </p>
+            
+            {/* Comparison with similar workouts */}
+            {ragAnalysis.comparison?.similar_found > 0 && (
+              <div className="p-2 bg-muted/30 rounded-sm mb-3">
+                <div className="flex items-center gap-2 mb-1">
+                  <History className="w-3 h-3 text-muted-foreground" />
+                  <span className="font-mono text-[9px] uppercase text-muted-foreground">
+                    {lang === "fr" ? "Comparaison" : "Comparison"}
+                  </span>
+                </div>
+                <p className="font-mono text-xs">
+                  {ragAnalysis.comparison.similar_found} {lang === "fr" ? "séances similaires" : "similar workouts"}
+                </p>
+                {ragAnalysis.comparison.progression && (
+                  <p className={`font-mono text-xs mt-1 ${
+                    ragAnalysis.comparison.progression.includes('plus rapide') || ragAnalysis.comparison.progression.includes('faster')
+                      ? 'text-emerald-400' 
+                      : 'text-amber-400'
+                  }`}>
+                    {ragAnalysis.comparison.progression.includes('plus rapide') || ragAnalysis.comparison.progression.includes('faster') ? (
+                      <TrendingUp className="w-3 h-3 inline mr-1" />
+                    ) : (
+                      <TrendingDown className="w-3 h-3 inline mr-1" />
+                    )}
+                    {ragAnalysis.comparison.progression}
+                  </p>
+                )}
+                {ragAnalysis.comparison.date_precedente && (
+                  <p className="font-mono text-[10px] text-muted-foreground mt-1 flex items-center gap-1">
+                    <Clock className="w-3 h-3" />
+                    {lang === "fr" ? "vs" : "vs"} {ragAnalysis.comparison.date_precedente}
+                  </p>
+                )}
+              </div>
+            )}
+            
+            {/* Points forts & améliorer */}
+            {(ragAnalysis.points_forts?.length > 0 || ragAnalysis.points_ameliorer?.length > 0) && (
+              <div className="flex flex-wrap gap-2">
+                {ragAnalysis.points_forts?.slice(0, 2).map((point, i) => (
+                  <span key={`fort-${i}`} className="inline-flex items-center gap-1 px-2 py-1 bg-emerald-500/10 text-emerald-400 rounded-sm">
+                    <Target className="w-3 h-3" />
+                    <span className="font-mono text-[10px]">{point}</span>
+                  </span>
+                ))}
+                {ragAnalysis.points_ameliorer?.slice(0, 1).map((point, i) => (
+                  <span key={`ameliorer-${i}`} className="inline-flex items-center gap-1 px-2 py-1 bg-amber-500/10 text-amber-400 rounded-sm">
+                    <AlertTriangle className="w-3 h-3" />
+                    <span className="font-mono text-[10px]">{point}</span>
+                  </span>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       {/* 6) Actions */}
       <div className="space-y-2 mt-4">
         <Button
