@@ -1055,28 +1055,26 @@ TEMPLATES = {
         "keywords": [],  # Pas de keywords, c'est le fallback
         "intros": [
             "Hmm, je suis pas sûr de comprendre... 🤔",
-            "Oula, t'as posé une colle là !",
-            "Je capte pas trop la question...",
-            "Euh, c'est une question piège ? 😅",
-            "Je sèche un peu là !",
-            "Ah, celle-là je l'avais pas vue venir !",
-            "Je suis coach running, pas devin ! 😄",
-            "Hmm, reformule peut-être ?",
-            "J'ai pas tout suivi là !",
-            "C'est une question existentielle ou running ? 🤣",
-            "Je bloque un peu là !",
-            "Tu me perds ! 😅"
+            "Je vois pas trop où tu veux en venir...",
+            "Je capte pas bien, désolé !",
+            "Pas sûr de suivre là...",
+            "J'ai du mal à comprendre ta question...",
+            "Oups, j'ai pas bien saisi...",
+            "Attends, c'est quoi ta question exacte ?",
+            "Je suis un peu perdu là...",
+            "Tu peux m'en dire plus ?",
+            "Je comprends pas bien ce que tu veux dire..."
         ],
         "analyses": [
-            "Je suis calé en running, mais là tu me dépasses !",
-            "Ma spécialité c'est la course, pas la philosophie !",
-            "Je peux t'aider sur l'entraînement, la récup, la nutrition, les blessures...",
-            "Si c'est une question running, reformule et je te réponds !",
-            "Mon domaine : allure, cadence, récup, plan, motivation, blessures, nutrition...",
-            "Je suis là pour ton entraînement, pose-moi des questions running !",
-            "Mes sujets de prédilection : technique, prépa course, récupération...",
-            "Je peux analyser tes données, te conseiller un plan, parler nutrition ou blessures.",
-            "Running, trail, prépa marathon, je gère. Le reste... moins !",
+            "Je suis ton coach running, dis-moi ce qui te tracasse côté course !",
+            "Parle-moi de ton entraînement, je suis là pour ça !",
+            "Côté running, je peux t'aider sur plein de sujets.",
+            "Mon domaine c'est la course à pied, pose-moi tes questions là-dessus !",
+            "Je suis calé sur tout ce qui touche à l'endurance et à la course.",
+            "Pour le running, je suis ton gars ! Autre chose... moins.",
+            "Ma spécialité c'est t'aider à progresser en course.",
+            "J'ai pas compris mais dis-moi ce qui te préoccupe côté entraînement !",
+            "Parlons de ta course, c'est là que je peux vraiment t'aider !",
             "Recentrons sur la course, c'est là que je peux vraiment t'aider !"
         ],
         "conseils": [
@@ -1093,16 +1091,16 @@ TEMPLATES = {
         ],
         "relances": [
             "Tu voulais me parler de quoi exactement ?",
-            "C'est quoi ta vraie question ?",
+            "Tu peux préciser ta question ?",
             "Tu peux reformuler ?",
-            "T'as une question running pour moi ?",
+            "T'as une question sur ton entraînement ?",
             "Comment je peux t'aider ?",
             "Tu veux qu'on parle de ton entraînement ?",
             "Y a un sujet running qui t'intéresse ?",
             "Dis-moi ce qui te préoccupe !",
             "T'as besoin d'un conseil sur quoi ?",
             "Qu'est-ce qui t'amène aujourd'hui ?",
-            "Allez, pose-moi une vraie question running !",
+            "Qu'est-ce que tu veux savoir ?",
             "Je t'écoute, dis-moi tout !"
         ]
     }
