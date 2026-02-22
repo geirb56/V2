@@ -144,6 +144,7 @@ export default function WorkoutDetail() {
   const { t, lang } = useLanguage();
   const [workout, setWorkout] = useState(null);
   const [analysis, setAnalysis] = useState(null);
+  const [ragAnalysis, setRagAnalysis] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -153,12 +154,14 @@ export default function WorkoutDetail() {
   const loadWorkout = async () => {
     setLoading(true);
     try {
-      const [workoutRes, analysisRes] = await Promise.all([
+      const [workoutRes, analysisRes, ragRes] = await Promise.all([
         axios.get(`${API}/workouts/${id}`),
-        axios.get(`${API}/coach/workout-analysis/${id}?language=${lang}`)
+        axios.get(`${API}/coach/workout-analysis/${id}?language=${lang}`),
+        axios.get(`${API}/rag/workout/${id}`).catch(() => ({ data: null }))
       ]);
       setWorkout(workoutRes.data);
       setAnalysis(analysisRes.data);
+      setRagAnalysis(ragRes.data);
     } catch (error) {
       console.error("Failed to load workout:", error);
       try {
