@@ -613,6 +613,29 @@ User should always know: "Am I doing too much?", "Am I doing too little?", "What
 
 **Test Report:** `/app/test_reports/iteration_20.json` (100% pass rate)
 
+### Phase 21 - CHAT ENGINE IMPROVEMENTS (Dec 2025) ✅
+**Améliorations du moteur de chat RAG**
+
+**Bugs Fixed:**
+1. **"Avec jours avant ta course, ."** - Removed problematic template with missing placeholder variable
+2. **Short responses not understood** - Added SHORT_RESPONSES dictionary to handle conversational replies
+
+**New Features:**
+1. **SHORT_RESPONSES Dictionary** - Handles common short replies:
+   - Time-related: "matin", "soir" → contextual advice about morning/evening running
+   - Confirmations: "oui", "non", "ok", "merci", "cool", "parfait"
+   - Days of week: "lundi" through "dimanche" → scheduling suggestions
+
+2. **Improved Template Variables** - Added missing context variables:
+   - `zones_resume`, `zones_conseil`, `charge_recommandation`
+   - `adaptation_comment`, `repartition`, `ratio_implication`
+   - `progression`, `progression_action`
+
+3. **Cleaner Fallback Responses** - Removed sarcastic/joking responses, kept helpful guidance
+
+**Files Modified:**
+- `/app/backend/chat_engine.py` - Major improvements to response generation
+
 ### P1 - High Priority (Next)
 - Allow user to configure personal max HR in Settings
 
