@@ -794,6 +794,7 @@ def generate_weekly_review_rag(
     
     # Comparison with previous week
     km_prev = metrics_prev_week.get("km_total", 0)
+    variation = 0
     if km_prev > 0:
         variation = round((km_semaine - km_prev) / km_prev * 100)
         comparaison = f"{'+'if variation > 0 else ''}{variation}% vs semaine dernière"
