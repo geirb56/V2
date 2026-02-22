@@ -1230,6 +1230,39 @@ def get_relevant_knowledge(category: str, context: Dict) -> List[str]:
 
 # Réponses courtes qui indiquent une réponse à une question précédente
 SHORT_RESPONSES = {
+    # SALUTATIONS
+    "salut": {
+        "response": "Salut ! 👋 Content de te voir !",
+        "relance": "Comment je peux t'aider aujourd'hui ? Tu veux parler de ton entraînement, ta forme, ou un plan ?"
+    },
+    "bonjour": {
+        "response": "Bonjour ! ☀️ Prêt à parler running ?",
+        "relance": "Qu'est-ce qui t'amène ? Plan d'entraînement, analyse de séance, conseils ?"
+    },
+    "hello": {
+        "response": "Hello ! 👋",
+        "relance": "Comment je peux t'aider aujourd'hui ?"
+    },
+    "hey": {
+        "response": "Hey ! 🙌",
+        "relance": "Quoi de neuf côté running ?"
+    },
+    "coucou": {
+        "response": "Coucou ! 😊",
+        "relance": "Comment ça va ? Tu veux qu'on parle de ton entraînement ?"
+    },
+    "bonsoir": {
+        "response": "Bonsoir ! 🌙 Sortie du soir prévue ?",
+        "relance": "Je peux t'aider sur quoi ce soir ?"
+    },
+    "hi": {
+        "response": "Hi ! 👋",
+        "relance": "What's up ? Comment je peux t'aider ?"
+    },
+    "yo": {
+        "response": "Yo ! 🤙",
+        "relance": "Qu'est-ce qui t'amène ?"
+    },
     # Réponses temporelles (matin/soir)
     "matin": {
         "response": "Le matin, c'est top pour l'énergie et la fraîcheur ! 🌅 Tu peux prévoir ton fractionné le matin quand t'es bien réveillé. Pour les sorties longues, ça laisse le reste de la journée libre !",
