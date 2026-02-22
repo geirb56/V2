@@ -579,9 +579,41 @@ User should always know: "Am I doing too much?", "Am I doing too little?", "What
 - ✅ **CHAT COACH (Feb 21, 2026)** - Python rule-based engine
 - ✅ **WEEKLY REVIEW HISTORY (Feb 22, 2026)** - Historique des bilans
 - ✅ **RAG ANALYTICS ENGINE (Dec 2025)** - RAG for dashboard, weekly, workout
+- ✅ **RAG FRONTEND INTEGRATION (Dec 2025)** - Dashboard, Bilan, WorkoutDetail cards
+
+### Phase 20 - RAG FRONTEND INTEGRATION (Dec 2025) ✅
+**Intégration des endpoints RAG dans le frontend**
+
+**Components Updated:**
+
+1. **Dashboard.jsx** (`data-testid="rag-summary-card"`)
+   - New "Analyse Personnalisée" card with Sparkles icon
+   - Displays RAG summary (first 4 lines)
+   - Shows points_forts badges (green) and points_ameliorer badges (amber)
+   - Fetched via `/api/rag/dashboard` in parallel with existing calls
+
+2. **Digest.jsx** (`data-testid="rag-weekly-card"`)
+   - New "Analyse RAG Personnalisée" card
+   - Inline metrics: km_total, nb_seances, allure_moy, duree_totale
+   - Comparison badge with trend icon (+X% vs prev week)
+   - Points forts/améliorer badges
+   - Fetched via `/api/rag/weekly-review` in parallel
+
+3. **WorkoutDetail.jsx** (`data-testid="rag-workout-card"`)
+   - New "Analyse RAG" card
+   - Comparison section with similar workouts count
+   - Progression indicator (faster/slower vs previous similar)
+   - Reference date for comparison
+   - Points forts/améliorer badges
+   - Fetched via `/api/rag/workout/{id}` in parallel
+
+**Error Handling:**
+- All RAG API calls use `.catch(() => ({ data: null }))` to prevent failures from blocking page load
+- Components gracefully hide RAG cards if data is not available
+
+**Test Report:** `/app/test_reports/iteration_20.json` (100% pass rate)
 
 ### P1 - High Priority (Next)
-- Integrate RAG endpoints into frontend components (Dashboard, Digest, WorkoutDetail)
 - Allow user to configure personal max HR in Settings
 
 ### P2 - Medium Priority
