@@ -190,6 +190,7 @@ export default function Dashboard() {
 
   const TrendIcon = insight?.month ? getTrendIcon(insight.month.trend) : Minus;
   const recovery = insight?.recovery_score;
+  const rag = insight?.rag;
 
   return (
     <div className="p-4 pb-24" data-testid="dashboard">
@@ -203,6 +204,41 @@ export default function Dashboard() {
                 {insight.coach_insight}
               </p>
             </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* RAG ENRICHED SUMMARY - NEW */}
+      {rag?.rag_summary && (
+        <Card className="bg-card border-border mb-4" data-testid="rag-summary-card">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Sparkles className="w-4 h-4 text-amber-400" />
+              <p className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground">
+                {lang === "fr" ? "Analyse personnalisée" : "Personalized Analysis"}
+              </p>
+            </div>
+            <p className="font-mono text-xs text-muted-foreground leading-relaxed whitespace-pre-line" data-testid="rag-summary">
+              {rag.rag_summary.split('\n').slice(0, 4).join('\n')}
+            </p>
+            
+            {/* Points forts & améliorer */}
+            {(rag.points_forts?.length > 0 || rag.points_ameliorer?.length > 0) && (
+              <div className="mt-3 pt-3 border-t border-border flex flex-wrap gap-2">
+                {rag.points_forts?.slice(0, 2).map((point, i) => (
+                  <span key={`fort-${i}`} className="inline-flex items-center gap-1 px-2 py-1 bg-emerald-500/10 text-emerald-400 rounded-sm">
+                    <Target className="w-3 h-3" />
+                    <span className="font-mono text-[10px]">{point}</span>
+                  </span>
+                ))}
+                {rag.points_ameliorer?.slice(0, 1).map((point, i) => (
+                  <span key={`ameliorer-${i}`} className="inline-flex items-center gap-1 px-2 py-1 bg-amber-500/10 text-amber-400 rounded-sm">
+                    <AlertTriangle className="w-3 h-3" />
+                    <span className="font-mono text-[10px]">{point}</span>
+                  </span>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
