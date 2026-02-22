@@ -1333,6 +1333,17 @@ def fill_template(template: str, context: Dict) -> str:
         "ratio_comment": "c'est équilibré, nickel !" if context.get("ratio", 1.0) <= 1.2 else "c'est un peu élevé, pense à récupérer.",
         "allure_comment": "solide" if context.get("allure", "N/A") != "N/A" else "N/A",
         "appreciation": "Belle semaine !" if context.get("nb_seances", 0) >= 3 else "C'est un bon début !",
+        
+        # Commentaires contextuels supplémentaires
+        "zones_resume": f"Z1-Z2: {context.get('zones', {}).get('z1', 0) + context.get('zones', {}).get('z2', 0)}%, Z3: {context.get('zones', {}).get('z3', 0)}%, Z4-Z5: {context.get('zones', {}).get('z4', 0) + context.get('zones', {}).get('z5', 0)}%" if context.get("zones") else "pas de données de zones",
+        "zones_conseil": "bon équilibre !" if context.get("zones", {}).get("z2", 0) > 40 else "pense à faire plus d'endurance fondamentale.",
+        "charge_recommandation": "tu peux maintenir ou légèrement augmenter" if context.get("ratio", 1.0) <= 1.2 else "calme un peu le jeu cette semaine",
+        "adaptation_comment": "c'est une bonne base à maintenir" if context.get("km_semaine", 0) > 0 else "on démarre doucement",
+        "repartition": "correcte" if context.get("zones", {}).get("z2", 0) > 30 else "à ajuster",
+        "repartition_comment": "Continue comme ça !",
+        "ratio_implication": "tu peux y aller" if context.get("ratio", 1.0) <= 1.2 else "récupère un peu d'abord",
+        "progression": "une bonne régularité" if context.get("nb_seances", 0) >= 2 else "une marge de progression",
+        "progression_action": "consolider cette base" if context.get("nb_seances", 0) >= 2 else "augmenter le volume progressivement",
     }
     
     # Remplacer les placeholders
