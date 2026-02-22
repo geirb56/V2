@@ -17,7 +17,10 @@ import {
   Battery,
   BatteryLow,
   BatteryMedium,
-  BatteryFull
+  BatteryFull,
+  Sparkles,
+  Target,
+  AlertTriangle
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -138,12 +141,20 @@ export default function Dashboard() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [insightRes, workoutsRes] = await Promise.all([
+      const [insightRes, workoutsRes, ragRes] = await Promise.all([
         axios.get(`${API}/dashboard/insight?language=${lang}`),
-        axios.get(`${API}/workouts`)
+        axios.get(`${API}/workouts`),
+        axios.get(`${API}/rag/dashboard`).catch(() => ({ data: null }))
       ]);
       setInsight(insightRes.data);
       setWorkouts(workoutsRes.data);
+      // Merge RAG data into insight for enhanced display
+      if (ragRes.data) {
+        setInsight(prev => ({
+          ...prev,
+          rag: ragRes.data
+        }));
+      }
     } catch (error) {
       console.error("Failed to fetch data:", error);
     } finally {
