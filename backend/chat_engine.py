@@ -1849,6 +1849,7 @@ def generate_response_with_suggestions(message: str, context: Dict, category: st
     """
     Génère une réponse complète avec suggestions.
     Retourne un dictionnaire avec 'response' et 'suggestions'.
+    NOTE: Plus de relance - les suggestions remplacent les relances du coach.
     """
     # D'abord, vérifier si c'est une réponse courte (réponse à une question précédente)
     message_lower = message.lower().strip()
@@ -1859,7 +1860,7 @@ def generate_response_with_suggestions(message: str, context: Dict, category: st
             # Pour les réponses courtes, utiliser des suggestions générales
             suggestions = get_personalized_suggestions("general", context, num_suggestions=random.randint(3, 4))
             return {
-                "response": f"{response_data['response']}\n\n{response_data['relance']}",
+                "response": response_data["response"],  # Plus de relance
                 "suggestions": suggestions,
                 "category": "short_response"
             }
@@ -1868,7 +1869,7 @@ def generate_response_with_suggestions(message: str, context: Dict, category: st
     if len(message_lower) < 15 and not any(kw in message_lower for cat in TEMPLATES.values() for kw in cat.get("keywords", [])):
         short_responses = [
             f"J'ai pas bien compris \"{message}\" 🤔 Tu peux me donner plus de détails ?",
-            f"Hmm, \"{message}\"... tu veux dire quoi exactement ? Dis-moi en plus !",
+            f"Hmm, \"{message}\"... tu veux dire quoi exactement ?",
             f"Je suis pas sûr de comprendre. Tu parles de ton entraînement ?",
             f"Peux-tu préciser un peu ? Je suis là pour t'aider sur la course ! 🏃",
         ]
@@ -1883,7 +1884,7 @@ def generate_response_with_suggestions(message: str, context: Dict, category: st
     if not category:
         category, confidence = detect_intent(message)
     
-    # Générer la réponse principale
+    # Générer la réponse principale (SANS relance)
     response_text = generate_response(message, context, category)
     
     # Générer les suggestions personnalisées (3 à 5)
