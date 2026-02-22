@@ -582,9 +582,14 @@ def calculate_metrics(workouts: List[Dict], period_days: int = 7) -> Dict:
     cadences = [w.get("avg_cadence_spm") for w in period_workouts if w.get("avg_cadence_spm")]
     cadence_moy = int(sum(cadences) / len(cadences)) if cadences else 0
     
-    # Total duration
-    durations = [w.get("duration_seconds", 0) for w in period_workouts]
-    total_seconds = sum(durations)
+    # Total duration - handle both duration_seconds and duration_minutes
+    total_seconds = 0
+    for w in period_workouts:
+        if w.get("duration_seconds"):
+            total_seconds += w["duration_seconds"]
+        elif w.get("duration_minutes"):
+            total_seconds += w["duration_minutes"] * 60
+    
     hours = total_seconds // 3600
     minutes = (total_seconds % 3600) // 60
     duree_totale = f"{hours}h{minutes:02d}"
