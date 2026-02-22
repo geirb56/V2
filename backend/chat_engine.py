@@ -1447,6 +1447,7 @@ def fill_template(template: str, context: Dict) -> str:
         # Commentaires contextuels supplémentaires
         "zones_resume": f"Z1-Z2: {context.get('zones', {}).get('z1', 0) + context.get('zones', {}).get('z2', 0)}%, Z3: {context.get('zones', {}).get('z3', 0)}%, Z4-Z5: {context.get('zones', {}).get('z4', 0) + context.get('zones', {}).get('z5', 0)}%" if context.get("zones") else "pas de données de zones",
         "zones_conseil": "bon équilibre !" if context.get("zones", {}).get("z2", 0) > 40 else "pense à faire plus d'endurance fondamentale.",
+        "zones_verdict": _get_zones_verdict(context.get("zones", {})),
         "charge_recommandation": "tu peux maintenir ou légèrement augmenter" if context.get("ratio", 1.0) <= 1.2 else "calme un peu le jeu cette semaine",
         "adaptation_comment": "c'est une bonne base à maintenir" if context.get("km_semaine", 0) > 0 else "on démarre doucement",
         "repartition": "correcte" if context.get("zones", {}).get("z2", 0) > 30 else "à ajuster",
