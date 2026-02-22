@@ -2697,20 +2697,21 @@ async def get_digest_history(user_id: str = "default", limit: int = 10, skip: in
 @api_router.get("/rag/dashboard")
 async def get_rag_dashboard(user_id: str = "default"):
     """Get RAG-enriched dashboard summary"""
-    # Fetch workouts (last 60 days)
+    # Fetch workouts - use same logic as /api/workouts (no user_id filter since data has None)
+    # This matches the main workouts endpoint behavior
     workouts = await db.workouts.find(
-        {"user_id": user_id},
+        {},  # No filter - workouts in DB have user_id=None
         {"_id": 0}
     ).sort("date", -1).limit(100).to_list(length=100)
     
     # Fetch previous bilans
     bilans = await db.digests.find(
-        {"user_id": user_id},
+        {},  # No filter for consistency
         {"_id": 0}
     ).sort("generated_at", -1).limit(8).to_list(length=8)
     
     # Fetch user goal
-    user_goal = await db.user_goals.find_one({"user_id": user_id}, {"_id": 0})
+    user_goal = await db.user_goals.find_one({}, {"_id": 0})
     
     # Generate RAG-enriched summary
     result = generate_dashboard_rag(workouts, bilans, user_goal)
@@ -2728,20 +2729,20 @@ async def get_rag_dashboard(user_id: str = "default"):
 @api_router.get("/rag/weekly-review")
 async def get_rag_weekly_review(user_id: str = "default"):
     """Get RAG-enriched weekly review"""
-    # Fetch workouts (last 30 days)
+    # Fetch workouts - no user_id filter to match main endpoint behavior
     workouts = await db.workouts.find(
-        {"user_id": user_id},
+        {},  # No filter - workouts in DB have user_id=None
         {"_id": 0}
     ).sort("date", -1).limit(50).to_list(length=50)
     
     # Fetch previous bilans
     bilans = await db.digests.find(
-        {"user_id": user_id},
+        {},  # No filter for consistency
         {"_id": 0}
     ).sort("generated_at", -1).limit(8).to_list(length=8)
     
     # Fetch user goal
-    user_goal = await db.user_goals.find_one({"user_id": user_id}, {"_id": 0})
+    user_goal = await db.user_goals.find_one({}, {"_id": 0})
     
     # Generate RAG-enriched review
     result = generate_weekly_review_rag(workouts, bilans, user_goal)
