@@ -506,7 +506,8 @@ def calculate_metrics(workouts: List[Dict], period_days: int = 7) -> Dict:
             "cadence_moy": 0,
             "duree_totale": "0h00",
             "ratio": 1.0,
-            "zones": {"z1": 0, "z2": 0, "z3": 0, "z4": 0, "z5": 0}
+            "zones": {"z1": 0, "z2": 0, "z3": 0, "z4": 0, "z5": 0},
+            "km_par_seance": 0
         }
     
     now = datetime.now(timezone.utc)
@@ -525,7 +526,16 @@ def calculate_metrics(workouts: List[Dict], period_days: int = 7) -> Dict:
             continue
     
     if not period_workouts:
-        return calculate_metrics([], 0)
+        return {
+            "km_total": 0,
+            "nb_seances": 0,
+            "allure_moy": "N/A",
+            "cadence_moy": 0,
+            "duree_totale": "0h00",
+            "ratio": 1.0,
+            "zones": {"z1": 0, "z2": 0, "z3": 0, "z4": 0, "z5": 0},
+            "km_par_seance": 0
+        }
     
     # Calculate metrics
     km_total = sum(w.get("distance_km", 0) for w in period_workouts)
