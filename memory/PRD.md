@@ -542,8 +542,6 @@ User should always know: "Am I doing too much?", "Am I doing too little?", "What
 - ✅ **WEEKLY REVIEW HISTORY (Feb 22, 2026)** - Historique des bilans
 
 ### P1 - High Priority (Next)
-- Add real Strava API credentials to enable actual workout import
-- Replace mock workout data with synced Strava data
 - Allow user to configure personal max HR in Settings
 
 ### P2 - Medium Priority
@@ -552,18 +550,15 @@ User should always know: "Am I doing too much?", "Am I doing too little?", "What
 - Weekly/monthly summary emails
 - Export training data (CSV/JSON)
 - Display VMA/VO2max estimation in Settings UI (backend API ready)
-- History of past weekly reviews (Bilan)
 
 ### P3 - Nice to Have
 - Additional languages (German, Spanish)
 - Apple Health/Google Fit sync
-- Improved WebLLM model loading (background download, pause/resume)
+- Better WebLLM models when available (current small models produce poor quality)
 
 ### Deprioritized
 - Garmin activation (dormant)
 - server.py refactoring (post-MVP)
-- Sync progress indicators
-- Background sync scheduling
 
 ## Tech Stack
 - Backend: FastAPI, MongoDB, emergentintegrations
