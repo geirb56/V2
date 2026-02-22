@@ -947,7 +947,12 @@ def generate_workout_analysis_rag(
     
     # Basic workout data
     km_total = workout.get("distance_km", 0)
+    
+    # Handle both duration_seconds and duration_minutes
     duration_sec = workout.get("duration_seconds", 0)
+    if duration_sec == 0 and workout.get("duration_minutes"):
+        duration_sec = workout.get("duration_minutes") * 60
+    
     duration_min = duration_sec // 60
     hours = duration_min // 60
     mins = duration_min % 60
