@@ -33,6 +33,13 @@ from chat_engine import (
     get_remaining_messages
 )
 
+# Import RAG engine for enriched analyses
+from rag_engine import (
+    generate_dashboard_rag,
+    generate_weekly_review_rag,
+    generate_workout_analysis_rag
+)
+
 # Import Stripe integration
 from emergentintegrations.payments.stripe.checkout import (
     StripeCheckout, 
