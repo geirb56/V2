@@ -1870,13 +1870,18 @@ async def generate_chat_response(
     workouts: List[Dict] = None,
     user_goal: Dict = None,
     chat_history: List[Dict] = None
-) -> str:
+) -> Dict:
     """
-    Fonction principale pour générer une réponse de chat
+    Fonction principale pour générer une réponse de chat avec suggestions.
     100% Python, pas de LLM, rapide (<1s)
+    Retourne un dict avec 'response', 'suggestions', 'category'
     """
     # Extraire le contexte d'entraînement
     context = get_user_training_context(workouts or [], user_goal)
+    
+    # Ajouter le nom de l'objectif au contexte si disponible
+    if user_goal:
+        context["objectif_nom"] = user_goal.get("event_name", "")
     
     # Détecter l'intention
     category, confidence = detect_intent(message)
@@ -1884,10 +1889,10 @@ async def generate_chat_response(
     # Récupérer les connaissances pertinentes
     knowledge = get_relevant_knowledge(category, context)
     
-    # Générer la réponse
-    response = generate_response(message, context, category)
+    # Générer la réponse avec suggestions
+    result = generate_response_with_suggestions(message, context, category)
     
-    return response
+    return result
 
 
 # ============================================================
