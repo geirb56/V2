@@ -1230,6 +1230,53 @@ def get_relevant_knowledge(category: str, context: Dict) -> List[str]:
 # DÉTECTION D'INTENTION
 # ============================================================
 
+# Réponses courtes qui indiquent une réponse à une question précédente
+SHORT_RESPONSES = {
+    # Réponses temporelles (matin/soir)
+    "matin": {
+        "response": "Le matin, c'est top pour l'énergie et la fraîcheur ! 🌅 Tu peux prévoir ton fractionné le matin quand t'es bien réveillé. Pour les sorties longues, ça laisse le reste de la journée libre !",
+        "relance": "Tu veux que je t'organise un plan avec des séances matinales ?"
+    },
+    "soir": {
+        "response": "Le soir, c'est parfait pour décompresser après la journée ! 🌆 Les muscles sont plus souples et la perf est souvent meilleure. Par contre, évite les séances trop intenses juste avant de dormir.",
+        "relance": "Tu veux qu'on cale tes séances en fin de journée ?"
+    },
+    # Réponses oui/non
+    "oui": {
+        "response": "Super, on est partis ! 💪",
+        "relance": "Dis-moi plus en détail ce que tu veux qu'on travaille."
+    },
+    "non": {
+        "response": "Pas de souci, on adapte ! 👍",
+        "relance": "Qu'est-ce qui t'arrangerait mieux ?"
+    },
+    "ok": {
+        "response": "Parfait ! ✅",
+        "relance": "T'as d'autres questions ?"
+    },
+    "merci": {
+        "response": "De rien, c'est le job ! 😊 Content de pouvoir t'aider.",
+        "relance": "N'hésite pas si t'as d'autres questions !"
+    },
+    "cool": {
+        "response": "Content que ça te plaise ! 😎",
+        "relance": "On continue sur quoi maintenant ?"
+    },
+    "parfait": {
+        "response": "Super ! On est sur la bonne voie. 🎯",
+        "relance": "Autre chose que je peux faire pour toi ?"
+    },
+    # Jours de la semaine
+    "lundi": {"response": "Lundi, bonne idée pour bien démarrer la semaine ! 📅", "relance": "Tu veux quelle type de séance ce jour-là ?"},
+    "mardi": {"response": "Mardi, c'est souvent un bon jour pour du fractionné ! 💨", "relance": "On programme quoi ?"},
+    "mercredi": {"response": "Mercredi, milieu de semaine, parfait pour une séance qualité ! 🎯", "relance": "Tu veux quoi ce jour-là ?"},
+    "jeudi": {"response": "Jeudi, jour de récup ou petite sortie ? 🤔", "relance": "Comment tu te sens généralement en fin de semaine ?"},
+    "vendredi": {"response": "Vendredi, on prépare le week-end ! 🏃", "relance": "Tu cours le week-end aussi ?"},
+    "samedi": {"response": "Samedi, journée idéale pour la sortie longue ! ☀️", "relance": "Tu fais souvent ta longue le week-end ?"},
+    "dimanche": {"response": "Dimanche, jour classique pour la sortie longue ou repos ! 🌳", "relance": "Tu préfères courir ou récupérer ce jour-là ?"},
+}
+
+
 def detect_intent(message: str) -> Tuple[str, float]:
     """Détecte l'intention/catégorie du message"""
     message_lower = message.lower()
