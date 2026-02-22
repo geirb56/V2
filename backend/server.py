@@ -4080,17 +4080,28 @@ async def send_chat_message(request: ChatRequest):
     
     # Generate response using local chat engine (NO LLM) - fallback mode
     # Note: If client uses WebLLM, it sends use_local_llm=True and we just store the message
+    response_text = ""
+    suggestions = []
+    category = ""
+    
     if request.use_local_llm:
         # Client is using WebLLM, we just need to store messages and track count
         response_text = ""  # Client will generate this
     else:
         # Use Python RAG engine (100% local, no LLM)
-        response_text = await generate_chat_response(
+        chat_result = await generate_chat_response(
             message=request.message,
             user_id=user_id,
             workouts=workouts,
             user_goal=user_goal
         )
+        # Handle both old (string) and new (dict) return formats
+        if isinstance(chat_result, dict):
+            response_text = chat_result.get("response", "")
+            suggestions = chat_result.get("suggestions", [])
+            category = chat_result.get("category", "")
+        else:
+            response_text = chat_result
     
     # Store user message
     user_msg_id = str(uuid.uuid4())
@@ -4110,6 +4121,7 @@ async def send_chat_message(request: ChatRequest):
             "user_id": user_id,
             "role": "assistant",
             "content": response_text,
+            "suggestions": suggestions,  # Store suggestions too
             "timestamp": now.isoformat()
         })
     
@@ -4122,7 +4134,9 @@ async def send_chat_message(request: ChatRequest):
         message_id=assistant_msg_id,
         messages_remaining=messages_remaining,
         messages_limit=messages_limit,
-        is_unlimited=is_unlimited
+        is_unlimited=is_unlimited,
+        suggestions=suggestions,
+        category=category
     )
 
 
