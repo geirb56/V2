@@ -239,26 +239,61 @@ const ChatCoach = ({ isOpen, onClose, userId = "default" }) => {
                       Réponses instantanées et personnalisées
                     </p>
                   </div>
+                  {/* Initial suggestions */}
+                  <div className="mt-4 space-y-2">
+                    {["Tu me fais un plan pour la semaine ?", "Comment je récupère mieux ?", "Analyse mes dernières sorties"].map((suggestion, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => handleSuggestionClick(suggestion)}
+                        className="block w-full text-left px-3 py-2 text-xs bg-primary/5 hover:bg-primary/10 rounded-lg border border-primary/20 text-primary transition-colors"
+                      >
+                        💡 {suggestion}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               ) : (
-                messages.map((msg) => (
-                  <div
-                    key={msg.id}
-                    className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-                  >
+                <>
+                  {messages.map((msg) => (
                     <div
-                      className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm ${
-                        msg.role === "user"
-                          ? "bg-primary text-primary-foreground rounded-br-sm"
-                          : msg.isError
-                          ? "bg-destructive/10 text-destructive rounded-bl-sm"
-                          : "bg-muted rounded-bl-sm"
-                      }`}
+                      key={msg.id}
+                      className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
                     >
-                      <p className="whitespace-pre-wrap">{msg.content}</p>
+                      <div
+                        className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm ${
+                          msg.role === "user"
+                            ? "bg-primary text-primary-foreground rounded-br-sm"
+                            : msg.isError
+                            ? "bg-destructive/10 text-destructive rounded-bl-sm"
+                            : "bg-muted rounded-bl-sm"
+                        }`}
+                      >
+                        <p className="whitespace-pre-wrap">{msg.content}</p>
+                      </div>
                     </div>
-                  </div>
-                ))
+                  ))}
+                  
+                  {/* Suggestions after last assistant message */}
+                  {!loading && currentSuggestions.length > 0 && messages.length > 0 && messages[messages.length - 1]?.role === "assistant" && (
+                    <div className="mt-2 space-y-1.5" data-testid="chat-suggestions">
+                      <p className="text-[10px] text-muted-foreground font-mono uppercase tracking-wider mb-2">
+                        💡 Suggestions
+                      </p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {currentSuggestions.map((suggestion, idx) => (
+                          <button
+                            key={idx}
+                            onClick={() => handleSuggestionClick(suggestion)}
+                            className="text-left px-2.5 py-1.5 text-[11px] bg-primary/5 hover:bg-primary/10 rounded-full border border-primary/20 text-primary/90 hover:text-primary transition-all hover:scale-[1.02]"
+                            data-testid={`suggestion-${idx}`}
+                          >
+                            {suggestion}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
               {loading && (
                 <div className="flex justify-start">
