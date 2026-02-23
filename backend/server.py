@@ -4680,28 +4680,63 @@ async def send_chat_message(request: ChatRequest):
     
     # Generate response using local chat engine (NO LLM) - fallback mode
     # Note: If client uses WebLLM, it sends use_local_llm=True and we just store the message
+    # LLM serveur uniquement – pas d'exécution client-side
     response_text = ""
     suggestions = []
     category = ""
+    used_llm = False
     
     if request.use_local_llm:
         # Client is using WebLLM, we just need to store messages and track count
         response_text = ""  # Client will generate this
     else:
-        # Use Python RAG engine (100% local, no LLM)
-        chat_result = await generate_chat_response(
-            message=request.message,
-            user_id=user_id,
-            workouts=workouts,
-            user_goal=user_goal
-        )
-        # Handle both old (string) and new (dict) return formats
-        if isinstance(chat_result, dict):
-            response_text = chat_result.get("response", "")
-            suggestions = chat_result.get("suggestions", [])
-            category = chat_result.get("category", "")
-        else:
-            response_text = chat_result
+        # Construire le contexte pour le LLM/RAG
+        context = build_chat_context(workouts, user_goal)
+        
+        # Récupérer l'historique de conversation récent
+        recent_messages = await db.chat_messages.find(
+            {"user_id": user_id},
+            {"_id": 0, "role": 1, "content": 1}
+        ).sort("timestamp", -1).limit(8).to_list(8)
+        recent_messages.reverse()  # Ordre chronologique
+        
+        # ÉTAPE 1: Essayer d'abord Ollama LLM (serveur uniquement)
+        try:
+            llm_response, llm_success = await generate_llm_response(
+                user_message=request.message,
+                context=context,
+                conversation_history=recent_messages,
+                user_id=user_id
+            )
+            
+            if llm_success and llm_response:
+                response_text = llm_response
+                used_llm = True
+                logger.info(f"[Chat] Réponse LLM ({OLLAMA_MODEL}) pour user {user_id}")
+        except Exception as e:
+            logger.warning(f"[Chat] LLM fallback - erreur: {e}")
+        
+        # ÉTAPE 2: Fallback vers templates Python si LLM échoue
+        if not response_text:
+            logger.info(f"[Chat] Fallback templates Python pour user {user_id}")
+            chat_result = await generate_chat_response(
+                message=request.message,
+                user_id=user_id,
+                workouts=workouts,
+                user_goal=user_goal
+            )
+            # Handle both old (string) and new (dict) return formats
+            if isinstance(chat_result, dict):
+                response_text = chat_result.get("response", "")
+                suggestions = chat_result.get("suggestions", [])
+                category = chat_result.get("category", "")
+            else:
+                response_text = chat_result
+        
+        # Générer des suggestions si pas déjà fait
+        if not suggestions:
+            from chat_engine import generate_smart_suggestions
+            suggestions = generate_smart_suggestions(request.message, context, category)
     
     # Store user message
     user_msg_id = str(uuid.uuid4())
