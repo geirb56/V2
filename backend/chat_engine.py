@@ -1720,7 +1720,11 @@ def fill_template(template: str, context: Dict) -> str:
         # Commentaires contextuels
         "cadence_comment": "c'est dans la bonne zone !" if context.get("cadence", 170) >= 170 else "c'est un peu bas, on peut améliorer ça.",
         "ratio_comment": "c'est équilibré, nickel !" if context.get("ratio", 1.0) <= 1.2 else "c'est un peu élevé, pense à récupérer.",
-        "allure_comment": "solide" if context.get("allure", "N/A") != "N/A" else "N/A",
+        "allure_comment": _get_allure_comment(context),
+        "volume_comment": _get_volume_comment(context),
+        "allure_cible": _get_allure_cible(context),
+        "analyse_progression": _get_analyse_progression(context),
+        "nb_sorties_longues": str(len([w for w in context.get("recent_workouts", []) if w.get("duration_min", 0) >= 75])),
         "appreciation": "Belle semaine !" if context.get("nb_seances", 0) >= 3 else "C'est un bon début !",
         
         # Sensations (basées sur le ratio et le volume)
