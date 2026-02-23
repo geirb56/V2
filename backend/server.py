@@ -33,12 +33,14 @@ from chat_engine import (
     get_remaining_messages
 )
 
-# Import LLM coach module (serveur uniquement - Emergent GPT-4o-mini)
-# LLM serveur uniquement – pas d'exécution client-side
+# Import LLM coach module (serveur uniquement - GPT-4o-mini données anonymisées)
+# LLM serveur uniquement – pas de données brutes Strava envoyées
 from llm_coach import (
-    generate_llm_response,
-    check_llm_available,
-    get_llm_info,
+    enrich_chat_response,
+    enrich_weekly_review,
+    enrich_workout_analysis,
+    anonymize_weekly_stats,
+    anonymize_workout_stats,
     LLM_MODEL,
     LLM_PROVIDER
 )
