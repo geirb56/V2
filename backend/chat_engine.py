@@ -2106,6 +2106,10 @@ def fill_template(template: str, context: Dict) -> str:
         # Allure Z2 (environ 45 sec plus lent que l'allure moyenne)
         "allure_z2": _get_allure_z2(context),
         
+        # Répartition des séances
+        "nb_seances_faciles": str(max(context.get("nb_seances", 3) - 1, 1)),
+        "nb_seances_qualite": "1" if context.get("nb_seances", 3) <= 4 else "2",
+        
         # Variables pour prépa course (fallback values)
         "distance": context.get("goal_distance", "ta course"),
         "phase_prepa": "d'entraînement" if (context.get("jours_course") or 30) > 14 else "d'affûtage",
