@@ -768,15 +768,15 @@ def generate_dashboard_rag(
     if km_mois < 30:
         conditionnels.append(random.choice(DASHBOARD_CONDITIONALS["charge_low"]))
     
-    # Assemble response
+    # Assemble response (SANS relance - remplacé par tips RAG)
     parts = [intro, "", analyse, "", points_forts_text, points_ameliorer_text]
     
     if conditionnels:
         parts.extend(["", " ".join(conditionnels)])
     
-    parts.extend(["", conseil, "", relance])
+    parts.extend(["", conseil])
     
-    # Add tips if relevant
+    # RAG: Add tips from knowledge base
     if tips:
         parts.extend(["", "💡 " + random.choice(tips)])
     
