@@ -3008,6 +3008,7 @@ async def get_rag_workout_analysis(workout_id: str, user_id: str = "default"):
         "points_forts": result["points_forts"],
         "points_ameliorer": result["points_ameliorer"],
         "tips": result["tips"],
+        "rag_sources": result.get("rag_sources", {}),
         "generated_at": datetime.now(timezone.utc).isoformat()
     }
 
