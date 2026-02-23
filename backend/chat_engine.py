@@ -414,6 +414,62 @@ TEMPLATES = {
         ]
     },
     
+    # ==================== CATÉGORIE 7b: ZONES CARDIAQUES ====================
+    "zones": {
+        "keywords": [],  # Détection via detect_intent
+        "intros": [
+            "Parlons de tes zones cardiaques ! 💓",
+            "Les zones, c'est la clé de l'entraînement !",
+            "L'équilibre des zones, super important !",
+            "Tes zones cardiaques, analysons ça !",
+            "La répartition des zones, j'adore ce sujet !"
+        ],
+        "analyses": [
+            "Ta répartition actuelle : Z1-Z2 (endurance) = {z1z2}%, Z3 (tempo) = {z3}%, Z4-Z5 (intensif) = {z4z5}%. {zones_verdict}",
+            "L'idéal pour progresser : 80% en Z1-Z2 (endurance), 15-20% en Z3-Z4. Toi t'es à {z1z2}% en endurance.",
+            "La zone 2 (endurance fondamentale) est LA zone où tu dois passer le plus de temps. Elle développe ta base aérobie.",
+            "Trop de Z3 (zone tempo) = risque de fatigue chronique sans vrais gains. Vise plutôt Z2 + Z4 avec moins de Z3.",
+            "Avec {z4z5}% en zones hautes (Z4-Z5), {zones_conseil}"
+        ],
+        "conseils": [
+            "Pour équilibrer : ajoute 1-2 sorties en Z2 pure (conversation possible) par semaine. C'est contre-intuitif mais ça marche !",
+            "La règle 80/20 : 80% du temps en endurance facile, 20% en intensité. Simple mais efficace.",
+            "Pour savoir si t'es en Z2 : tu dois pouvoir parler facilement. Si tu souffles, t'es trop haut.",
+            "Une sortie en Z3 permanente = la 'zone grise'. Ni assez facile pour récupérer, ni assez dur pour progresser. À éviter !",
+            "Mon conseil : fais tes sorties faciles VRAIMENT faciles, et tes séances dures VRAIMENT dures. Pas de juste milieu mou.",
+            "Pour augmenter ta Z2 : cours avec un cardio et reste sous 75% de ta FC max. C'est frustrant au début mais payant !"
+        ],
+        "relances": []
+    },
+    
+    # ==================== CATÉGORIE 7c: SENSATIONS ====================
+    "sensations": {
+        "keywords": [],  # Détection via detect_intent
+        "intros": [
+            "Comment tu te sens, c'est important ! 😊",
+            "Les sensations, le meilleur indicateur !",
+            "Écouter son corps, c'est la base !",
+            "Tes sensations comptent énormément !",
+            "Le ressenti, souvent plus fiable que les chiffres !"
+        ],
+        "analyses": [
+            "Se sentir bien, c'est le signe que ton corps absorbe bien la charge. Ton ratio de {ratio} confirme que t'es dans le bon équilibre.",
+            "Les bonnes sensations = bonne adaptation à l'entraînement. Continue comme ça !",
+            "Ton corps te parle : si tu te sens bien, c'est que ton plan fonctionne. {km_semaine} km cette semaine, c'est {volume_comment}.",
+            "La forme du jour varie, c'est normal ! L'important c'est la tendance sur plusieurs semaines.",
+            "Tes sensations aujourd'hui reflètent souvent ce que tu as fait il y a 2-3 jours. La fatigue est décalée."
+        ],
+        "conseils": [
+            "Profite de cette bonne forme pour une séance qualité si t'en as pas fait récemment !",
+            "Quand tu te sens bien, c'est le moment idéal pour une sortie longue ou une séance de seuil.",
+            "Note tes sensations après chaque sortie (1-10). Ça aide à détecter les tendances sur le long terme.",
+            "Si tu te sens bien plusieurs jours d'affilée, tu peux légèrement augmenter l'intensité ou le volume.",
+            "Les sensations comptent plus que les chiffres. Si tu te sens fatigué malgré de bonnes stats, écoute ton corps !",
+            "Profite de ce bon feeling ! C'est le signe que ton entraînement est bien dosé. 💪"
+        ],
+        "relances": []
+    },
+    
     # ==================== CATÉGORIE 8: NUTRITION ====================
     "nutrition": {
         "keywords": ["nutrition", "manger", "alimentation", "glucides", "protéines", "hydratation", "boire", "eau", "gel", "boisson", "repas", "petit-déjeuner", "récup", "crampe"],
