@@ -4779,6 +4779,7 @@ async def send_chat_message(request: ChatRequest):
     suggestions = []
     category = ""
     used_llm = False
+    llm_metadata = {}
     
     if request.use_local_llm:
         # Client is using WebLLM, we just need to store messages and track count
@@ -4794,9 +4795,9 @@ async def send_chat_message(request: ChatRequest):
         ).sort("timestamp", -1).limit(8).to_list(8)
         recent_messages.reverse()  # Ordre chronologique
         
-        # ÉTAPE 1: Essayer d'abord Ollama LLM (serveur uniquement)
+        # ÉTAPE 1: Essayer d'abord Emergent LLM (GPT-4o-mini, serveur uniquement)
         try:
-            llm_response, llm_success = await generate_llm_response(
+            llm_response, llm_success, llm_metadata = await generate_llm_response(
                 user_message=request.message,
                 context=context,
                 conversation_history=recent_messages,
@@ -4806,7 +4807,7 @@ async def send_chat_message(request: ChatRequest):
             if llm_success and llm_response:
                 response_text = llm_response
                 used_llm = True
-                logger.info(f"[Chat] Réponse LLM ({OLLAMA_MODEL}) pour user {user_id}")
+                logger.info(f"[Chat] ✅ Réponse Emergent LLM ({LLM_MODEL}) en {llm_metadata.get('duration_sec', 0)}s pour user {user_id}")
         except Exception as e:
             logger.warning(f"[Chat] LLM fallback - erreur: {e}")
         
