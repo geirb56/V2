@@ -878,6 +878,86 @@ def convert_strava_to_workout(strava_activity: dict, streams_data: dict = None, 
     return workout
 
 
+def enrich_workout_with_detailed_data(workout: dict, streams_data: dict, laps_data: list) -> dict:
+    """Enrich workout with detailed Strava data (splits, HR/cadence/pace per km)"""
+    if not workout:
+        return workout
+    
+    distance_km = workout.get("distance_km", 0)
+    
+    # Process laps (official Strava splits)
+    if laps_data:
+        splits = process_strava_laps(laps_data)
+        workout["splits"] = splits
+        
+        # Analyze splits for RAG
+        if splits:
+            paces = [s["pace_min_km"] for s in splits if s.get("pace_min_km")]
+            if paces:
+                fastest_split = min(paces)
+                slowest_split = max(paces)
+                avg_split_pace = sum(paces) / len(paces)
+                
+                # Find fastest and slowest km
+                fastest_km = next((s["lap_num"] for s in splits if s.get("pace_min_km") == fastest_split), None)
+                slowest_km = next((s["lap_num"] for s in splits if s.get("pace_min_km") == slowest_split), None)
+                
+                workout["split_analysis"] = {
+                    "fastest_split_pace": round(fastest_split, 2),
+                    "slowest_split_pace": round(slowest_split, 2),
+                    "fastest_km": fastest_km,
+                    "slowest_km": slowest_km,
+                    "pace_drop": round(slowest_split - fastest_split, 2),
+                    "consistency_score": round(100 - (slowest_split - fastest_split) * 10, 1),  # 100 = parfait
+                    "negative_split": paces[-1] < paces[0] if len(paces) >= 2 else False,
+                    "total_splits": len(splits)
+                }
+    
+    # Process streams for detailed data
+    if streams_data:
+        detailed = process_strava_streams(streams_data, distance_km)
+        
+        # Store sampled data for RAG retrieval
+        if detailed.get("hr_data"):
+            workout["hr_stream_sample"] = detailed["hr_data"][:50]  # First 50 points
+            # HR analysis
+            hr_data = [h for h in detailed["hr_data"] if h]
+            if hr_data:
+                workout["hr_analysis"] = {
+                    "min_hr": min(hr_data),
+                    "max_hr": max(hr_data),
+                    "avg_hr": round(sum(hr_data) / len(hr_data)),
+                    "hr_drift": round(sum(hr_data[-10:]) / 10 - sum(hr_data[:10]) / 10) if len(hr_data) >= 20 else 0,
+                }
+        
+        if detailed.get("cadence_data"):
+            workout["cadence_stream_sample"] = detailed["cadence_data"][:50]
+            cadence_data = [c for c in detailed["cadence_data"] if c]
+            if cadence_data:
+                workout["cadence_analysis"] = {
+                    "min_cadence": min(cadence_data),
+                    "max_cadence": max(cadence_data),
+                    "avg_cadence": round(sum(cadence_data) / len(cadence_data)),
+                    "cadence_stability": round(100 - (max(cadence_data) - min(cadence_data)) / 2, 1),
+                }
+        
+        if detailed.get("altitude_data"):
+            alt_data = [a for a in detailed["altitude_data"] if a is not None]
+            if alt_data:
+                workout["elevation_analysis"] = {
+                    "min_altitude": round(min(alt_data)),
+                    "max_altitude": round(max(alt_data)),
+                    "total_climb": round(sum(max(0, alt_data[i] - alt_data[i-1]) for i in range(1, len(alt_data)))),
+                    "total_descent": round(sum(max(0, alt_data[i-1] - alt_data[i]) for i in range(1, len(alt_data)))),
+                }
+        
+        # Store km splits from streams
+        if detailed.get("km_splits"):
+            workout["km_splits"] = detailed["km_splits"]
+    
+    return workout
+
+
 # ========== CARDIOCOACH SYSTEM PROMPTS ==========
 
 CARDIOCOACH_SYSTEM_EN = """You are CardioCoach, a mobile-first personal sports coach.
