@@ -1448,28 +1448,40 @@ def detect_intent(message: str) -> Tuple[str, float]:
     question_type = "general"
     
     # Détection des questions "comment améliorer / progresser"
-    ameliorer_keywords = ["améliorer", "ameliorer", "progresser", "augmenter", "booster", "optimiser", "gagner", "passer de", "passer à", "descendre", "baisser mon"]
+    ameliorer_keywords = ["améliorer", "ameliorer", "progresser", "augmenter", "booster", "optimiser", "gagner", "passer de", "passer à", "descendre sous", "baisser mon", "comment aller plus", "courir plus vite", "être plus rapide"]
     if any(kw in message_lower for kw in ameliorer_keywords):
         question_type = "ameliorer"
     
-    # Détection des questions d'analyse/bilan
-    analyse_keywords = ["analyse", "bilan", "comment va", "où j'en suis", "mon niveau", "ma forme"]
-    if any(kw in message_lower for kw in analyse_keywords):
-        question_type = "analyse"
-    
-    # Détection des questions de conseil
-    conseil_keywords = ["conseil", "recommand", "que faire", "quoi faire", "tu me conseilles", "tu penses"]
-    if any(kw in message_lower for kw in conseil_keywords):
-        question_type = "conseil"
+    # ============================================================
+    # ÉTAPE 2: Si c'est une question d'amélioration, détecter le SUJET spécifique
+    # ============================================================
+    if question_type == "ameliorer":
+        # Sujet: Allure / Vitesse / Pace
+        allure_keywords = ["allure", "pace", "vitesse", "vite", "rapide", "min/km", "km/h", "tempo", "rythme", "chrono"]
+        if any(kw in message_lower for kw in allure_keywords):
+            return "ameliorer_allure", 0.95
+        
+        # Sujet: Endurance / Distance
+        endurance_keywords = ["endurance", "fond", "longue", "distance", "km", "volume", "tenir plus", "durer"]
+        if any(kw in message_lower for kw in endurance_keywords):
+            return "ameliorer_endurance", 0.95
+        
+        # Sujet: Cadence / Foulée
+        cadence_keywords = ["cadence", "foulée", "spm", "pas"]
+        if any(kw in message_lower for kw in cadence_keywords):
+            return "ameliorer_allure", 0.95  # Cadence va avec allure
+        
+        # Amélioration générale (pas de sujet spécifique détecté)
+        return "ameliorer_general", 0.85
     
     # ============================================================
-    # ÉTAPE 2: Détecter le SUJET (allure, fatigue, récup, etc.)
+    # ÉTAPE 3: Pour les autres questions, détection classique par keywords
     # ============================================================
     best_category = "fallback"
     best_score = 0
     
     for category, data in TEMPLATES.items():
-        if category == "fallback":
+        if category in ["fallback", "ameliorer_allure", "ameliorer_endurance", "ameliorer_general"]:
             continue
             
         keywords = data.get("keywords", [])
@@ -1486,22 +1498,6 @@ def detect_intent(message: str) -> Tuple[str, float]:
         if score > best_score:
             best_score = score
             best_category = category
-    
-    # ============================================================
-    # ÉTAPE 3: Combiner type + sujet pour une catégorie finale
-    # ============================================================
-    
-    # Si c'est une question d'amélioration sur l'allure/cadence
-    if question_type == "ameliorer" and best_category == "allure_cadence":
-        return "ameliorer_allure", 0.9
-    
-    # Si c'est une question d'amélioration sur l'endurance/plan
-    if question_type == "ameliorer" and best_category in ["plan", "semaine"]:
-        return "ameliorer_endurance", 0.9
-    
-    # Si c'est une question d'amélioration générale
-    if question_type == "ameliorer" and best_score < 2:
-        return "ameliorer_general", 0.8
     
     # Seuil minimum pour éviter les faux positifs
     confidence = min(best_score / 4, 1.0) if best_score > 0 else 0
