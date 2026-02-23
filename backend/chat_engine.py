@@ -1516,6 +1516,38 @@ def _get_conseil_semaine_prochaine(context: Dict) -> str:
     return random.choice(conseils) if len(conseils) == 1 else conseils[0]
 
 
+def _get_resume_global(context: Dict) -> str:
+    """Génère un résumé global de la semaine"""
+    km = context.get("km_semaine", 0)
+    nb = context.get("nb_seances", 0)
+    ratio = context.get("ratio", 1.0)
+    
+    if nb >= 4 and km >= 30:
+        return "semaine très active"
+    elif nb >= 3:
+        return "bonne semaine"
+    elif ratio > 1.3:
+        return "semaine chargée"
+    elif nb == 0:
+        return "semaine de repos"
+    else:
+        return "semaine correcte"
+
+
+def _get_conseil_global(context: Dict) -> str:
+    """Génère un conseil global"""
+    zones = context.get("zones", {})
+    z1z2 = zones.get("z1", 0) + zones.get("z2", 0)
+    ratio = context.get("ratio", 1.0)
+    
+    if ratio > 1.3:
+        return "Pense à bien récupérer."
+    elif z1z2 < 30:
+        return "Ajoute plus d'endurance fondamentale."
+    else:
+        return "Continue comme ça !"
+
+
 def fill_template(template: str, context: Dict) -> str:
     """Remplit un template avec les données du contexte"""
     # Créer un dictionnaire de remplacement avec des valeurs par défaut
