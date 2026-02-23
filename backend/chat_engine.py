@@ -1527,6 +1527,9 @@ def fill_template(template: str, context: Dict) -> str:
         "point_fort": _get_point_fort(context),
         "point_ameliorer": _get_point_ameliorer(context),
         
+        # Conseil semaine prochaine
+        "conseil_semaine_prochaine": _get_conseil_semaine_prochaine(context),
+        
         # Commentaires contextuels supplémentaires
         "zones_resume": f"Z1-Z2: {context.get('zones', {}).get('z1', 0) + context.get('zones', {}).get('z2', 0)}%, Z3: {context.get('zones', {}).get('z3', 0)}%, Z4-Z5: {context.get('zones', {}).get('z4', 0) + context.get('zones', {}).get('z5', 0)}%" if context.get("zones") else "pas de données de zones",
         "zones_conseil": "bon équilibre !" if context.get("zones", {}).get("z2", 0) > 40 else "pense à faire plus d'endurance fondamentale.",
