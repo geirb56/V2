@@ -3731,7 +3731,7 @@ async def strava_callback(code: str, state: str, scope: str = None):
 
 @api_router.post("/strava/sync", response_model=StravaSyncResult)
 async def sync_strava_activities(user_id: str = "default", fetch_details: bool = True):
-    """Sync activities from Strava with optional detailed HR/pace data"""
+    """Sync activities from Strava with detailed HR/pace/splits data for RAG"""
     # Get token
     token = await db.strava_tokens.find_one({"user_id": user_id}, {"_id": 0})
     
@@ -3779,37 +3779,50 @@ async def sync_strava_activities(user_id: str = "default", fetch_details: bool =
         for idx, strava_activity in enumerate(activities):
             activity_id = strava_activity.get("id")
             
-            # Fetch detailed streams for recent activities (first 30)
+            # Fetch detailed data for recent activities (first 50 for better RAG)
             streams_data = None
             zones_data = None
+            laps_data = None
             
-            if fetch_details and idx < 30 and activity_id:
-                # Only fetch details for activities with HR data
+            if fetch_details and idx < 50 and activity_id:
+                # Fetch laps (splits) for all activities
+                laps_data = await fetch_strava_activity_laps(access_token, str(activity_id))
+                
+                # Fetch streams and zones for activities with HR data
                 if strava_activity.get("has_heartrate") or strava_activity.get("average_heartrate"):
                     streams_data = await fetch_strava_activity_streams(access_token, str(activity_id))
                     zones_data = await fetch_strava_activity_zones(access_token, str(activity_id))
-                    if streams_data or zones_data:
-                        detailed_count += 1
+                
+                if streams_data or zones_data or laps_data:
+                    detailed_count += 1
             
+            # Convert base workout
             workout = convert_strava_to_workout(strava_activity, streams_data, zones_data)
             
             if workout:
+                # Enrich with detailed data (splits, HR analysis, cadence analysis)
+                workout = enrich_workout_with_detailed_data(workout, streams_data, laps_data)
+                
                 # Check if already exists
                 existing = await db.workouts.find_one({"id": workout["id"]})
                 if not existing:
                     await db.workouts.insert_one(workout)
                     synced_count += 1
-                elif streams_data or zones_data:
-                    # Update existing workout with detailed data
+                else:
+                    # Update existing workout with new detailed data
                     update_fields = {}
-                    if workout.get("effort_zone_distribution"):
-                        update_fields["effort_zone_distribution"] = workout["effort_zone_distribution"]
-                    if workout.get("pace_stats"):
-                        update_fields["pace_stats"] = workout["pace_stats"]
-                    if workout.get("best_pace_min_km"):
-                        update_fields["best_pace_min_km"] = workout["best_pace_min_km"]
-                    if workout.get("avg_cadence_spm"):
-                        update_fields["avg_cadence_spm"] = workout["avg_cadence_spm"]
+                    
+                    # Basic fields
+                    for field in ["effort_zone_distribution", "pace_stats", "best_pace_min_km", "avg_cadence_spm"]:
+                        if workout.get(field):
+                            update_fields[field] = workout[field]
+                    
+                    # Detailed data for RAG
+                    for field in ["splits", "split_analysis", "km_splits", "hr_analysis", 
+                                  "cadence_analysis", "elevation_analysis", 
+                                  "hr_stream_sample", "cadence_stream_sample"]:
+                        if workout.get(field):
+                            update_fields[field] = workout[field]
                     
                     if update_fields:
                         await db.workouts.update_one(
