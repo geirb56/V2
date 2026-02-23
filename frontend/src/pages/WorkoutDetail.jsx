@@ -393,6 +393,111 @@ export default function WorkoutDetail() {
             <p className="font-mono text-xs text-muted-foreground leading-relaxed mb-3 whitespace-pre-line" data-testid="rag-workout-summary">
               {ragAnalysis.rag_summary?.split('\n').slice(0, 4).join('\n')}
             </p>
+
+            {/* Split Analysis - NEW */}
+            {ragAnalysis.workout?.split_analysis && Object.keys(ragAnalysis.workout.split_analysis).length > 0 && (
+              <div className="p-2 bg-blue-500/10 rounded-sm mb-3" data-testid="split-analysis-card">
+                <div className="flex items-center gap-2 mb-2">
+                  <Activity className="w-3 h-3 text-blue-400" />
+                  <span className="font-mono text-[9px] uppercase text-blue-400">
+                    {lang === "fr" ? "Analyse des Splits" : "Split Analysis"}
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div>
+                    <p className="font-mono text-[10px] text-muted-foreground">
+                      {lang === "fr" ? "Km le + rapide" : "Fastest km"}
+                    </p>
+                    <p className="font-mono text-emerald-400 font-semibold">
+                      Km {ragAnalysis.workout.split_analysis.fastest_km} 
+                      <span className="text-muted-foreground ml-1">
+                        ({Math.floor(ragAnalysis.workout.split_analysis.fastest_split_pace)}:{String(Math.round((ragAnalysis.workout.split_analysis.fastest_split_pace % 1) * 60)).padStart(2, '0')})
+                      </span>
+                    </p>
+                  </div>
+                  <div>
+                    <p className="font-mono text-[10px] text-muted-foreground">
+                      {lang === "fr" ? "Km le + lent" : "Slowest km"}
+                    </p>
+                    <p className="font-mono text-amber-400 font-semibold">
+                      Km {ragAnalysis.workout.split_analysis.slowest_km}
+                      <span className="text-muted-foreground ml-1">
+                        ({Math.floor(ragAnalysis.workout.split_analysis.slowest_split_pace)}:{String(Math.round((ragAnalysis.workout.split_analysis.slowest_split_pace % 1) * 60)).padStart(2, '0')})
+                      </span>
+                    </p>
+                  </div>
+                  <div>
+                    <p className="font-mono text-[10px] text-muted-foreground">
+                      {lang === "fr" ? "Écart allure" : "Pace drop"}
+                    </p>
+                    <p className="font-mono font-semibold">
+                      {ragAnalysis.workout.split_analysis.pace_drop > 0 ? '+' : ''}{Math.round(ragAnalysis.workout.split_analysis.pace_drop * 60)}s/km
+                    </p>
+                  </div>
+                  <div>
+                    <p className="font-mono text-[10px] text-muted-foreground">
+                      {lang === "fr" ? "Régularité" : "Consistency"}
+                    </p>
+                    <p className={`font-mono font-semibold ${
+                      ragAnalysis.workout.split_analysis.consistency_score >= 80 ? 'text-emerald-400' :
+                      ragAnalysis.workout.split_analysis.consistency_score >= 60 ? 'text-amber-400' : 'text-red-400'
+                    }`}>
+                      {Math.round(ragAnalysis.workout.split_analysis.consistency_score)}%
+                    </p>
+                  </div>
+                </div>
+                {ragAnalysis.workout.split_analysis.negative_split && (
+                  <div className="mt-2 px-2 py-1 bg-emerald-500/20 rounded-sm">
+                    <p className="font-mono text-[10px] text-emerald-400 font-semibold">
+                      ✨ Negative Split - {lang === "fr" ? "Tu as accéléré en fin de sortie !" : "You sped up at the end!"}
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* HR Analysis - NEW */}
+            {ragAnalysis.workout?.hr_analysis && Object.keys(ragAnalysis.workout.hr_analysis).length > 0 && (
+              <div className="p-2 bg-red-500/10 rounded-sm mb-3" data-testid="hr-analysis-card">
+                <div className="flex items-center gap-2 mb-2">
+                  <Heart className="w-3 h-3 text-red-400" />
+                  <span className="font-mono text-[9px] uppercase text-red-400">
+                    {lang === "fr" ? "Analyse Cardiaque" : "Heart Rate Analysis"}
+                  </span>
+                </div>
+                <div className="grid grid-cols-3 gap-2 text-xs">
+                  <div>
+                    <p className="font-mono text-[10px] text-muted-foreground">Min</p>
+                    <p className="font-mono font-semibold">{ragAnalysis.workout.hr_analysis.min_hr} bpm</p>
+                  </div>
+                  <div>
+                    <p className="font-mono text-[10px] text-muted-foreground">Moy</p>
+                    <p className="font-mono font-semibold">{ragAnalysis.workout.hr_analysis.avg_hr} bpm</p>
+                  </div>
+                  <div>
+                    <p className="font-mono text-[10px] text-muted-foreground">Max</p>
+                    <p className="font-mono font-semibold">{ragAnalysis.workout.hr_analysis.max_hr} bpm</p>
+                  </div>
+                </div>
+                {ragAnalysis.workout.hr_analysis.hr_drift !== 0 && (
+                  <div className="mt-2">
+                    <p className="font-mono text-[10px] text-muted-foreground">
+                      {lang === "fr" ? "Dérive cardiaque" : "HR Drift"}
+                    </p>
+                    <p className={`font-mono text-xs font-semibold ${
+                      Math.abs(ragAnalysis.workout.hr_analysis.hr_drift) > 10 ? 'text-amber-400' : 'text-muted-foreground'
+                    }`}>
+                      {ragAnalysis.workout.hr_analysis.hr_drift > 0 ? '+' : ''}{ragAnalysis.workout.hr_analysis.hr_drift} bpm
+                      {Math.abs(ragAnalysis.workout.hr_analysis.hr_drift) > 10 && (
+                        <span className="ml-2 text-[10px]">
+                          ({lang === "fr" ? "Hydratation à surveiller" : "Watch hydration"})
+                        </span>
+                      )}
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
             
             {/* Comparison with similar workouts */}
             {ragAnalysis.comparison?.similar_found > 0 && (
@@ -418,6 +523,11 @@ export default function WorkoutDetail() {
                       <TrendingDown className="w-3 h-3 inline mr-1" />
                     )}
                     {ragAnalysis.comparison.progression}
+                  </p>
+                )}
+                {ragAnalysis.comparison.splits_comparison && (
+                  <p className="font-mono text-[10px] text-muted-foreground mt-1">
+                    {ragAnalysis.comparison.splits_comparison}
                   </p>
                 )}
                 {ragAnalysis.comparison.date_precedente && (
