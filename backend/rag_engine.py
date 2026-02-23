@@ -1202,24 +1202,46 @@ def generate_workout_analysis_rag(
     elif z1_z2 >= 70:
         conditionnels.append(random.choice(WORKOUT_CONDITIONALS["good_distribution"]))
     
-    # Assemble response
+    # Assemble response (SANS relance - remplacé par analyses détaillées)
     parts = [intro, "", analyse]
+    
+    # RAG Enrichi: Ajouter analyse des splits si disponible
+    if splits_text:
+        parts.extend(["", f"📊 {splits_text}"])
+    
+    # RAG Enrichi: Ajouter analyse HR drift si disponible
+    if hr_drift_text:
+        parts.extend(["", f"❤️ {hr_drift_text}"])
+    
+    # RAG Enrichi: Ajouter analyse cadence si disponible
+    if cadence_text:
+        parts.extend(["", f"👟 {cadence_text}"])
     
     if zones_text:
         parts.extend(["", zones_text])
     
-    parts.extend(["", comparaison, "", points_forts_text, points_ameliorer_text])
+    parts.extend(["", comparaison])
+    
+    # RAG Enrichi: Comparaison splits avec séance similaire
+    if similar_splits_comparison:
+        parts.extend(["", f"📈 {similar_splits_comparison}"])
+    
+    parts.extend(["", points_forts_text, points_ameliorer_text])
     
     if conditionnels:
         parts.extend(["", " ".join(conditionnels)])
     
-    parts.extend(["", conseil, "", relance])
+    parts.extend(["", conseil])
     
-    # Retrieve tips
+    # Retrieve tips from knowledge base
     tips = retrieve_relevant_tips("allure_cadence" if cadence_moy and cadence_moy < 170 else "general", {
         "cadence": cadence_moy,
         "ratio": 1.0
     })
+    
+    # Add RAG tip
+    if tips:
+        parts.extend(["", f"💡 {random.choice(tips)}"])
     
     return {
         "summary": "\n".join(parts).strip(),
@@ -1228,14 +1250,26 @@ def generate_workout_analysis_rag(
             "duree": duree,
             "allure": allure_moy,
             "cadence": cadence_moy,
-            "zones": zones
+            "zones": zones,
+            "splits": splits[:5] if splits else [],  # First 5 splits for display
+            "split_analysis": split_analysis,
+            "hr_analysis": hr_analysis,
+            "cadence_analysis": cadence_analysis
         },
         "comparison": {
             "similar_found": len(similar_workouts),
             "progression": progression,
-            "date_precedente": date_precedente
+            "date_precedente": date_precedente,
+            "splits_comparison": similar_splits_comparison
         },
         "points_forts": points_forts,
         "points_ameliorer": points_ameliorer,
-        "tips": tips
+        "tips": tips,
+        "rag_sources": {
+            "detailed_splits": bool(splits),
+            "hr_analysis": bool(hr_analysis),
+            "cadence_analysis": bool(cadence_analysis),
+            "similar_workouts": len(similar_workouts),
+            "knowledge_tips": len(tips)
+        }
     }
