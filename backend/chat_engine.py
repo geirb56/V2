@@ -1601,6 +1601,10 @@ def fill_template(template: str, context: Dict) -> str:
         "resume_global": _get_resume_global(context),
         "conseil_global": _get_conseil_global(context),
         
+        # Récupération
+        "recup_besoin": _get_recup_besoin(context),
+        "recup_conseil": _get_recup_conseil(context),
+        
         # Commentaires contextuels supplémentaires
         "zones_resume": f"Z1-Z2: {context.get('zones', {}).get('z1', 0) + context.get('zones', {}).get('z2', 0)}%, Z3: {context.get('zones', {}).get('z3', 0)}%, Z4-Z5: {context.get('zones', {}).get('z4', 0) + context.get('zones', {}).get('z5', 0)}%" if context.get("zones") else "pas de données de zones",
         "zones_conseil": "bon équilibre !" if context.get("zones", {}).get("z2", 0) > 40 else "pense à faire plus d'endurance fondamentale.",
