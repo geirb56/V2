@@ -4618,6 +4618,99 @@ async def stripe_webhook(request: Request):
 
 # ========== CHAT COACH (PREMIUM ONLY) ==========
 
+def build_chat_context(workouts: list, user_goal: dict = None) -> dict:
+    """
+    Construit le contexte utilisateur pour le chat coach (LLM ou templates).
+    # LLM serveur uniquement – pas d'exécution client-side
+    """
+    from datetime import timedelta
+    
+    context = {
+        "km_semaine": 0,
+        "nb_seances": 0,
+        "allure": "N/A",
+        "cadence": 0,
+        "zones": {},
+        "ratio": 1.0,
+        "recent_workouts": [],
+        "rag_tips": [],
+    }
+    
+    if not workouts:
+        return context
+    
+    # Filtrer les workouts de la semaine
+    today = datetime.now(timezone.utc).date()
+    week_start = today - timedelta(days=today.weekday())
+    
+    week_workouts = []
+    for w in workouts:
+        try:
+            w_date = datetime.fromisoformat(w.get("date", "").replace("Z", "+00:00")).date()
+            if w_date >= week_start:
+                week_workouts.append(w)
+        except:
+            pass
+    
+    # Stats de la semaine
+    context["km_semaine"] = round(sum(w.get("distance_km", 0) for w in week_workouts), 1)
+    context["nb_seances"] = len(week_workouts)
+    
+    # Allure moyenne
+    total_time = sum(w.get("duration_min", 0) for w in week_workouts)
+    total_km = context["km_semaine"]
+    if total_km > 0 and total_time > 0:
+        pace_min = total_time / total_km
+        context["allure"] = f"{int(pace_min)}:{int((pace_min % 1) * 60):02d}"
+    
+    # Cadence moyenne
+    cadences = [w.get("average_cadence", 0) for w in week_workouts if w.get("average_cadence")]
+    if cadences:
+        context["cadence"] = round(sum(cadences) / len(cadences))
+    
+    # Zones moyennes
+    zone_totals = {"z1": 0, "z2": 0, "z3": 0, "z4": 0, "z5": 0}
+    zone_count = 0
+    for w in week_workouts:
+        zones = w.get("effort_zone_distribution", {})
+        if zones:
+            for z, pct in zones.items():
+                if z in zone_totals:
+                    zone_totals[z] += pct
+            zone_count += 1
+    
+    if zone_count > 0:
+        context["zones"] = {z: round(v / zone_count) for z, v in zone_totals.items()}
+    
+    # Ratio charge (simplifié)
+    prev_week_km = sum(
+        w.get("distance_km", 0) for w in workouts
+        if (datetime.fromisoformat(w.get("date", "2000-01-01").replace("Z", "+00:00")).date() 
+            >= week_start - timedelta(days=7))
+        and (datetime.fromisoformat(w.get("date", "2000-01-01").replace("Z", "+00:00")).date() 
+             < week_start)
+    )
+    if prev_week_km > 0:
+        context["ratio"] = round(context["km_semaine"] / prev_week_km, 2)
+    
+    # Workouts récents (5 derniers)
+    context["recent_workouts"] = [
+        {
+            "name": w.get("name", "Run"),
+            "distance_km": w.get("distance_km", 0),
+            "duration_min": w.get("duration_min", 0),
+            "date": w.get("date", ""),
+        }
+        for w in workouts[:5]
+    ]
+    
+    # Goal
+    if user_goal:
+        context["objectif_nom"] = user_goal.get("race_name", "")
+        context["jours_course"] = user_goal.get("days_until", None)
+    
+    return context
+
 @api_router.post("/chat/send", response_model=ChatResponse)
 async def send_chat_message(request: ChatRequest):
     """Send a message to the chat coach (with tier-based limits)"""
