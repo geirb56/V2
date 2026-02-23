@@ -3063,8 +3063,8 @@ async def get_rag_weekly_review(user_id: str = "default"):
 
 @api_router.get("/rag/workout/{workout_id}")
 async def get_rag_workout_analysis(workout_id: str, user_id: str = "default"):
-    """Get RAG-enriched workout analysis"""
-    # Fetch the workout - no user_id filter to match main endpoint behavior
+    """Get RAG-enriched workout analysis with GPT-4o-mini enhancement"""
+    # Fetch the workout
     workout = await db.workouts.find_one(
         {"id": workout_id},
         {"_id": 0}
@@ -3073,7 +3073,7 @@ async def get_rag_workout_analysis(workout_id: str, user_id: str = "default"):
     if not workout:
         raise HTTPException(status_code=404, detail="Workout not found")
     
-    # Fetch all workouts for comparison - no user_id filter
+    # Fetch all workouts for comparison
     all_workouts = await db.workouts.find(
         {},
         {"_id": 0}
@@ -3082,17 +3082,41 @@ async def get_rag_workout_analysis(workout_id: str, user_id: str = "default"):
     # Fetch user goal
     user_goal = await db.user_goals.find_one({}, {"_id": 0})
     
-    # Generate RAG-enriched analysis
+    # Generate RAG-enriched analysis (calculs 100% Python local)
     result = generate_workout_analysis_rag(workout, all_workouts, user_goal)
     
+    # ENRICHISSEMENT GPT-4o-mini avec données ANONYMISÉES
+    enriched_summary = result["summary"]
+    used_llm = False
+    
+    try:
+        # Préparer les stats anonymisées (pas de données brutes Strava)
+        anonymized_workout = anonymize_workout_stats(workout)
+        anonymized_workout["comparison"] = result.get("comparison", {}).get("progression", "")
+        anonymized_workout["points_forts"] = result.get("points_forts", [])
+        anonymized_workout["points_ameliorer"] = result.get("points_ameliorer", [])
+        
+        llm_summary, llm_success, _ = await enrich_workout_analysis(
+            anonymized_workout=anonymized_workout,
+            user_id=user_id
+        )
+        
+        if llm_success and llm_summary:
+            enriched_summary = llm_summary
+            used_llm = True
+            logger.info(f"[RAG] ✅ Analyse séance enrichie GPT pour workout {workout_id}")
+    except Exception as e:
+        logger.warning(f"[RAG] Analyse séance fallback templates: {e}")
+    
     return {
-        "rag_summary": result["summary"],
+        "rag_summary": enriched_summary,
         "workout": result["workout"],
         "comparison": result["comparison"],
         "points_forts": result["points_forts"],
         "points_ameliorer": result["points_ameliorer"],
         "tips": result["tips"],
         "rag_sources": result.get("rag_sources", {}),
+        "enriched_by_llm": used_llm,
         "generated_at": datetime.now(timezone.utc).isoformat()
     }
 
