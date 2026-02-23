@@ -520,57 +520,33 @@ TEMPLATES = {
         ]
     },
     
-    # ==================== CATÉGORIE 10: PROGRESSION/STAGNATION ====================
+    # ==================== CATÉGORIE 10: PROGRESSION / STAGNATION ====================
     "progression": {
-        "keywords": ["progression", "progresser", "stagnation", "stagner", "plateau", "améliorer", "performance", "chrono", "temps", "record", "pr", "vo2max", "vma"],
+        "keywords": ["progresser", "progressé", "stagne", "stagnation", "plateau", "bloqué", "évoluer", "avancer", "améliorer", "mieux", "indicateur", "surveiller"],
         "intros": [
-            "La progression, parlons-en ! 📈",
-            "T'inquiète, on va débloquer ça !",
-            "Les plateaux, c'est normal et temporaire !",
-            "Progresser, c'est un marathon, pas un sprint !",
-            "Ta progression m'intéresse !",
-            "Voyons comment te faire évoluer !",
-            "La perf, c'est un travail de fond !",
-            "On va trouver des pistes d'amélioration !",
-            "T'as le potentiel, faut juste ajuster !",
-            "Chaque coureur peut progresser, toi y compris !"
+            "Bonne question sur la progression ! 📈",
+            "Surveiller ta progression, c'est la clé !",
+            "Voyons les indicateurs importants !",
+            "T'as raison de vouloir mesurer ta progression !",
+            "Pour progresser, il faut d'abord savoir où on en est !",
+            "Les bons indicateurs, ça change tout !"
         ],
         "analyses": [
-            "La progression n'est jamais linéaire. Les plateaux de 2-4 semaines sont normaux et nécessaires.",
-            "Vu tes données, ta VMA estimée est autour de {vma} km/h. {vma_comment}",
-            "Tu stagnes peut-être parce que tu fais toujours le même type de séances. La variété stimule la progression.",
-            "Une stagnation après plusieurs mois de progression = ton corps s'adapte. C'est bon signe !",
-            "Pour progresser en endurance, il faut paradoxalement aller plus lentement sur les sorties faciles.",
-            "Ta cadence de {cadence} et ton allure de {allure} montrent {analyse_technique}.",
-            "Les gains de VMA/VO2max prennent 6-12 mois de travail régulier. Patience !",
-            "Un plateau peut aussi être signe de fatigue accumulée. As-tu assez récupéré ?",
-            "Progresser = stress + récup. Si tu stresses toujours sans récupérer, tu plafonnes.",
-            "Ta progression sur {periode} montre {evolution}. {evolution_comment}"
+            "Les indicateurs clés à surveiller :\n• **Allure moyenne** (ton {allure}/km actuel)\n• **FC de repos** (si elle baisse = progression)\n• **Cadence** ({cadence} spm actuellement)\n• **Sensations** à l'effort\n• **Temps de récup** après les séances",
+            "Pour mesurer ta progression, compare sur 4-8 semaines :\n1. Ton allure au km sur les sorties faciles\n2. Ta FC moyenne à même allure\n3. Tes temps sur des parcours références",
+            "Avec ton volume de {km_semaine} km/sem et une allure de {allure}/km, les indicateurs à surveiller sont : allure, cadence, et surtout les sensations à même effort.",
+            "La FC est un super indicateur : si tu cours à {allure}/km avec une FC plus basse qu'avant, tu progresses ! Même si l'allure n'a pas changé.",
+            "Pour suivre ta progression :\n• **Court terme** : sensations, récupération\n• **Moyen terme** (4 sem) : allure, FC à effort égal\n• **Long terme** (3+ mois) : temps sur 5/10km, VMA",
         ],
         "conseils": [
-            "Pour casser un plateau : ajoute une séance de VMA par semaine (8x400m ou 6x500m).",
-            "Varie les stimuli : côtes, fartlek, tempo, intervalles. Ton corps a besoin de nouveauté.",
-            "Parfois, 1-2 semaines de décharge suffisent à relancer la progression.",
-            "Travaille ta vitesse pure de temps en temps : 6-8 sprints de 20 sec, récup 2 min.",
-            "L'endurance fondamentale (Z2) doit représenter 80% de ton volume. C'est la base de tout.",
-            "Le travail de seuil (allure semi-marathon) améliore l'économie de course.",
-            "Si tu stagnes en vitesse, bosse la cadence et la technique de foulée.",
-            "Un coach ou un regard extérieur peut identifier des axes de progression invisibles pour toi.",
-            "Analyse tes courses passées : où perds-tu du temps ? C'est là qu'il faut travailler.",
-            "La force (renforcement) peut débloquer une stagnation chez beaucoup de coureurs."
+            "Les 5 indicateurs essentiels :\n1️⃣ Allure au km (sur parcours plat)\n2️⃣ FC de repos au réveil\n3️⃣ FC à allure donnée\n4️⃣ Cadence (spm)\n5️⃣ Sensations subjectives (1-10)",
+            "Crée-toi un parcours de référence (3-5km plat) que tu fais une fois par mois à fond. Compare les temps !",
+            "Note tes sensations après chaque sortie (1-10). Si tu cours plus vite avec les mêmes sensations = progression !",
+            "La FC de repos est un indicateur sous-estimé. Mesure-la chaque matin au réveil. Si elle baisse sur plusieurs semaines, tu t'améliores.",
+            "Compare tes allures en Z2 (endurance) : si tu cours plus vite à même FC, tu progresses en économie de course.",
+            "L'indicateur #1 pour moi : est-ce que tu arrives à tenir ton allure plus longtemps qu'avant ? Si oui, tu progresses !"
         ],
-        "relances": [
-            "Tu stagnes depuis combien de temps environ ?",
-            "C'est sur quel aspect : vitesse, endurance, les deux ?",
-            "Tu fais du fractionné régulièrement ?",
-            "T'as un objectif chrono précis ?",
-            "Tu varies tes types de séances ?",
-            "T'as pris des vacances de course récemment ?",
-            "Tu travailles la technique de foulée ?",
-            "Tu fais du renforcement musculaire ?",
-            "T'as analysé tes courses récentes en détail ?",
-            "Tu cours toujours sur le même terrain (route, trail, piste) ?"
-        ]
+        "relances": []
     },
     
     # ==================== CATÉGORIE 11: PRÉPA COURSE ====================
