@@ -1481,6 +1481,41 @@ def _get_point_ameliorer(context: Dict) -> str:
         return "varier les types de séances"
 
 
+def _get_conseil_semaine_prochaine(context: Dict) -> str:
+    """Génère un conseil pour la semaine prochaine"""
+    zones = context.get("zones", {})
+    z1z2 = zones.get("z1", 0) + zones.get("z2", 0)
+    z3 = zones.get("z3", 0)
+    ratio = context.get("ratio", 1.0)
+    nb_seances = context.get("nb_seances", 0)
+    cadence = context.get("cadence", 0)
+    
+    conseils = []
+    
+    if ratio > 1.3:
+        conseils.append("réduire un peu le volume pour mieux récupérer")
+    elif ratio < 0.8:
+        conseils.append("augmenter légèrement le volume")
+    
+    if z1z2 < 30 and z3 > 50:
+        conseils.append("ajouter une sortie longue en endurance fondamentale")
+    
+    if 0 < cadence < 165:
+        conseils.append("intégrer des gammes ou du travail technique")
+    
+    if nb_seances < 3:
+        conseils.append("ajouter une séance de plus si ton emploi du temps le permet")
+    
+    if not conseils:
+        conseils = [
+            "maintenir ce bon équilibre",
+            "continuer sur cette lancée",
+            "garder cette régularité"
+        ]
+    
+    return random.choice(conseils) if len(conseils) == 1 else conseils[0]
+
+
 def fill_template(template: str, context: Dict) -> str:
     """Remplit un template avec les données du contexte"""
     # Créer un dictionnaire de remplacement avec des valeurs par défaut
