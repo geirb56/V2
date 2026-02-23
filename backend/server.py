@@ -4855,7 +4855,8 @@ async def send_chat_message(request: ChatRequest):
     
     messages_remaining = max(0, messages_limit - message_count - 1) if not is_unlimited else 999
     
-    logger.info(f"Chat message processed for user {user_id} (tier={tier}). Remaining: {messages_remaining}")
+    source = f"LLM ({OLLAMA_MODEL})" if used_llm else "Templates Python"
+    logger.info(f"Chat message processed for user {user_id} (tier={tier}, source={source}). Remaining: {messages_remaining}")
     
     return ChatResponse(
         response=response_text,
