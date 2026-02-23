@@ -1981,6 +1981,24 @@ def _get_duree_totale(context: Dict) -> str:
         return f"{total_min} min"
 
 
+def _get_allure_z2(context: Dict) -> str:
+    """Calcule l'allure Z2 (environ 45 sec plus lent que l'allure moyenne)"""
+    allure = context.get("allure", "N/A")
+    if allure == "N/A":
+        return "7:00-7:30"
+    
+    try:
+        parts = allure.split(":")
+        pace_min = float(parts[0]) + float(parts[1]) / 60
+        # Z2 = environ 45 sec/km plus lent
+        z2_pace = pace_min + 0.75
+        z2_min = int(z2_pace)
+        z2_sec = int((z2_pace - z2_min) * 60)
+        return f"{z2_min}:{z2_sec:02d}"
+    except:
+        return "7:00-7:30"
+
+
 def fill_template(template: str, context: Dict) -> str:
     """Remplit un template avec les données du contexte"""
     # Créer un dictionnaire de remplacement avec des valeurs par défaut
