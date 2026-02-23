@@ -1558,6 +1558,12 @@ def detect_intent(message: str) -> Tuple[str, float]:
     if "endurance fondamentale" in message_lower or "zone 2" in message_lower or "z2" in message_lower or "fond " in message_lower:
         return "endurance_fondamentale", 0.95
     
+    # Équilibre fractionné/endurance - question sur le ratio 80/20
+    equilibre_keywords = ["équilibrer", "equilibrer", "ratio", "répartir", "repartir", "combien de fractionné", "combien de séances", "80/20", "polarisé"]
+    types_seances = ["fractionné", "endurance", "séances", "intensité", "qualité", "facile"]
+    if any(kw in message_lower for kw in equilibre_keywords) and any(ts in message_lower for ts in types_seances):
+        return "equilibre_seances", 0.95
+    
     # ============================================================
     # ÉTAPE 1: Détecter le TYPE de question (améliorer, analyser, etc.)
     # ============================================================
