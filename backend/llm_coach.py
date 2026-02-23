@@ -1,11 +1,11 @@
 """
-CardioCoach - Module LLM Serveur (Ollama)
+CardioCoach - Module LLM Emergent (GPT-4o-mini)
 # LLM serveur uniquement – pas d'exécution client-side
 
-Ce module gère l'intégration avec Ollama pour générer des réponses naturelles
-et conversationnelles. Tout est exécuté côté serveur, jamais sur le client mobile.
+Ce module gère l'intégration avec Emergent Universal LLM Key pour générer 
+des réponses naturelles et conversationnelles via GPT-4o-mini.
 
-Fallback automatique: si Ollama n'est pas disponible, timeout ou erreur,
+Fallback automatique: si l'appel LLM échoue (crédits épuisés, timeout, erreur),
 le système revient aux templates Python rule-based.
 """
 
@@ -13,16 +13,19 @@ import os
 import time
 import logging
 from typing import Dict, List, Optional, Tuple
-import httpx
+from dotenv import load_dotenv
+
+load_dotenv()
 
 logger = logging.getLogger(__name__)
 
-# Configuration Ollama
-OLLAMA_HOST = os.environ.get("OLLAMA_HOST", "http://localhost:11434")
-OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "phi3:mini")
-OLLAMA_TIMEOUT = 15  # secondes max pour une réponse
+# Configuration Emergent LLM
+EMERGENT_LLM_KEY = os.environ.get("EMERGENT_LLM_KEY", "")
+LLM_MODEL = "gpt-4.1-mini"  # GPT-4o-mini equivalent
+LLM_PROVIDER = "openai"
+LLM_TIMEOUT = 15  # secondes max pour une réponse
 
-# Prompt système pour le coach
+# Prompt système pour le coach (identique à Ollama)
 SYSTEM_PROMPT = """Tu es CardioCoach, un coach running enthousiaste, motivant, positif et expert en plans d'entraînement.
 
 PERSONNALITÉ:
@@ -33,13 +36,13 @@ PERSONNALITÉ:
 - Tu gardes tes réponses concises (3-5 phrases max)
 
 RÈGLES IMPORTANTES:
-- Base tes conseils UNIQUEMENT sur les données Strava fournies
+- Base tes conseils UNIQUEMENT sur les données Strava fournies ci-dessous
 - Ne fabule pas, si tu n'as pas l'info, dis-le
 - Encourage toujours, même si la performance n'est pas top
 - Utilise le tutoiement
 - Réponds directement à la question posée
 
-DONNÉES UTILISATEUR DISPONIBLES:
+DONNÉES UTILISATEUR (Strava):
 {context_data}
 
 HISTORIQUE DE LA CONVERSATION:
@@ -47,14 +50,9 @@ HISTORIQUE DE LA CONVERSATION:
 """
 
 
-async def check_ollama_available() -> bool:
-    """Vérifie si Ollama est disponible et répond"""
-    try:
-        async with httpx.AsyncClient(timeout=3.0) as client:
-            response = await client.get(f"{OLLAMA_HOST}/api/tags")
-            return response.status_code == 200
-    except Exception:
-        return False
+async def check_llm_available() -> bool:
+    """Vérifie si la clé Emergent LLM est configurée"""
+    return bool(EMERGENT_LLM_KEY) and EMERGENT_LLM_KEY.startswith("sk-emergent")
 
 
 async def generate_llm_response(
@@ -62,9 +60,9 @@ async def generate_llm_response(
     context: Dict,
     conversation_history: List[Dict],
     user_id: str = "unknown"
-) -> Tuple[Optional[str], bool]:
+) -> Tuple[Optional[str], bool, dict]:
     """
-    Génère une réponse via Ollama LLM.
+    Génère une réponse via Emergent LLM (GPT-4o-mini).
     
     # LLM serveur uniquement – pas d'exécution client-side
     
@@ -75,77 +73,94 @@ async def generate_llm_response(
         user_id: ID utilisateur pour les logs
         
     Returns:
-        Tuple[response_text, success_flag]
+        Tuple[response_text, success_flag, metadata]
         - Si success=True: response contient la réponse LLM
         - Si success=False: response est None, utiliser le fallback templates
+        - metadata: infos sur le temps de génération, tokens, etc.
     """
     start_time = time.time()
+    metadata = {
+        "model": LLM_MODEL,
+        "provider": LLM_PROVIDER,
+        "duration_sec": 0,
+        "success": False
+    }
     
-    # Vérifier si Ollama est disponible
-    if not await check_ollama_available():
-        logger.warning(f"[LLM] Ollama non disponible sur {OLLAMA_HOST}")
-        return None, False
+    # Vérifier si la clé est disponible
+    if not await check_llm_available():
+        logger.warning(f"[LLM] Emergent LLM Key non configurée")
+        return None, False, metadata
     
     # Construire le contexte utilisateur pour le prompt
     context_data = _build_context_string(context)
     history_str = _build_history_string(conversation_history)
     
-    # Construire le prompt complet
+    # Construire le prompt système complet
     system = SYSTEM_PROMPT.format(
         context_data=context_data,
         conversation_history=history_str
     )
     
     try:
-        async with httpx.AsyncClient(timeout=OLLAMA_TIMEOUT) as client:
-            response = await client.post(
-                f"{OLLAMA_HOST}/api/chat",
-                json={
-                    "model": OLLAMA_MODEL,
-                    "messages": [
-                        {"role": "system", "content": system},
-                        {"role": "user", "content": user_message}
-                    ],
-                    "stream": False,
-                    "options": {
-                        "num_ctx": 2048,  # Context window
-                        "num_predict": 256,  # Max tokens réponse
-                        "temperature": 0.7,  # Créativité modérée
-                        "top_p": 0.9,
-                    }
-                }
-            )
-            
-            if response.status_code == 200:
-                data = response.json()
-                llm_response = data.get("message", {}).get("content", "")
-                
-                elapsed = time.time() - start_time
-                logger.info(f"[LLM] Réponse générée par {OLLAMA_MODEL} en {elapsed:.2f}s pour user {user_id}")
-                
-                # Nettoyer la réponse
-                llm_response = _clean_response(llm_response)
-                
-                if llm_response:
-                    return llm_response, True
-                else:
-                    logger.warning("[LLM] Réponse vide du modèle")
-                    return None, False
-            else:
-                logger.error(f"[LLM] Erreur Ollama: {response.status_code} - {response.text}")
-                return None, False
-                
-    except httpx.TimeoutException:
+        # Import Emergent LLM
+        from emergentintegrations.llm.chat import LlmChat, UserMessage
+        
+        # Créer une session unique pour cet utilisateur
+        session_id = f"cardiocoach_{user_id}_{int(time.time())}"
+        
+        # Initialiser le chat avec GPT-4o-mini
+        chat = LlmChat(
+            api_key=EMERGENT_LLM_KEY,
+            session_id=session_id,
+            system_message=system
+        ).with_model(LLM_PROVIDER, LLM_MODEL)
+        
+        # Créer le message utilisateur
+        user_msg = UserMessage(text=user_message)
+        
+        # Envoyer et obtenir la réponse
+        import asyncio
+        response = await asyncio.wait_for(
+            chat.send_message(user_msg),
+            timeout=LLM_TIMEOUT
+        )
+        
         elapsed = time.time() - start_time
-        logger.warning(f"[LLM] Timeout après {elapsed:.2f}s pour user {user_id}")
-        return None, False
+        metadata["duration_sec"] = round(elapsed, 2)
+        metadata["success"] = True
+        
+        # Nettoyer la réponse
+        llm_response = _clean_response(str(response))
+        
+        if llm_response:
+            logger.info(f"[LLM] ✅ Réponse générée par {LLM_MODEL} en {elapsed:.2f}s pour user {user_id}")
+            return llm_response, True, metadata
+        else:
+            logger.warning("[LLM] Réponse vide du modèle")
+            return None, False, metadata
+            
+    except asyncio.TimeoutError:
+        elapsed = time.time() - start_time
+        metadata["duration_sec"] = round(elapsed, 2)
+        logger.warning(f"[LLM] ⏱️ Timeout après {elapsed:.2f}s pour user {user_id}")
+        return None, False, metadata
+        
     except Exception as e:
-        logger.error(f"[LLM] Erreur: {e}")
-        return None, False
+        elapsed = time.time() - start_time
+        metadata["duration_sec"] = round(elapsed, 2)
+        error_msg = str(e)
+        
+        # Vérifier si c'est un problème de crédits
+        if "credit" in error_msg.lower() or "balance" in error_msg.lower():
+            logger.error(f"[LLM] 💳 Crédits insuffisants pour user {user_id}")
+        else:
+            logger.error(f"[LLM] ❌ Erreur: {error_msg}")
+        
+        return None, False, metadata
 
 
 def _build_context_string(context: Dict) -> str:
-    """Construit une description humanisée du contexte utilisateur"""
+    """Construit une description humanisée du contexte utilisateur pour le RAG"""
     parts = []
     
     # Stats de la semaine
@@ -155,51 +170,66 @@ def _build_context_string(context: Dict) -> str:
     cadence = context.get("cadence", 0)
     
     if km_semaine > 0:
-        parts.append(f"- Cette semaine: {km_semaine} km en {nb_seances} séance(s)")
+        parts.append(f"• Cette semaine: {km_semaine} km en {nb_seances} séance(s)")
     if allure != "N/A":
-        parts.append(f"- Allure moyenne: {allure}/km")
+        parts.append(f"• Allure moyenne récente: {allure}/km")
     if cadence > 0:
-        parts.append(f"- Cadence: {cadence} spm")
+        parts.append(f"• Cadence moyenne: {cadence} spm")
     
     # Zones cardiaques
     zones = context.get("zones", {})
     if zones:
         z1z2 = zones.get("z1", 0) + zones.get("z2", 0)
+        z3 = zones.get("z3", 0)
         z4z5 = zones.get("z4", 0) + zones.get("z5", 0)
-        parts.append(f"- Répartition zones: {z1z2}% endurance, {z4z5}% intensité")
+        parts.append(f"• Répartition zones: {z1z2}% endurance (Z1-Z2), {z3}% tempo (Z3), {z4z5}% intensité (Z4-Z5)")
     
-    # Dernière séance
+    # Dernières séances
     recent = context.get("recent_workouts", [])
     if recent:
-        last = recent[0]
-        parts.append(f"- Dernière sortie: {last.get('name', 'Run')} - {last.get('distance_km', 0)} km")
+        parts.append("• Dernières sorties:")
+        for w in recent[:3]:
+            name = w.get('name', 'Run')
+            dist = w.get('distance_km', 0)
+            dur = w.get('duration_min', 0)
+            if dist > 0:
+                parts.append(f"  - {name}: {dist} km en {dur} min")
     
     # Ratio charge/récup
     ratio = context.get("ratio", 1.0)
     if ratio > 1.3:
-        parts.append("- ⚠️ Charge élevée, récupération recommandée")
+        parts.append("• ⚠️ Charge élevée cette semaine vs la précédente")
     elif ratio < 0.8:
-        parts.append("- Charge légère, marge pour augmenter")
+        parts.append("• Charge légère cette semaine, marge pour augmenter")
+    else:
+        parts.append("• Charge équilibrée cette semaine")
     
-    # Tips RAG récupérés
-    if context.get("rag_tips"):
-        parts.append(f"- Conseils pertinents: {', '.join(context['rag_tips'][:2])}")
+    # Objectif course
+    if context.get("objectif_nom"):
+        jours = context.get("jours_course", "?")
+        parts.append(f"• Objectif: {context['objectif_nom']} dans {jours} jours")
     
-    return "\n".join(parts) if parts else "Données utilisateur non disponibles"
+    # Split analysis si disponible
+    if context.get("split_analysis"):
+        sa = context["split_analysis"]
+        if sa.get("fastest_km"):
+            parts.append(f"• Dernière séance - Km le + rapide: Km{sa['fastest_km']}, Km le + lent: Km{sa.get('slowest_km', '?')}")
+    
+    return "\n".join(parts) if parts else "Pas encore de données d'entraînement disponibles."
 
 
 def _build_history_string(history: List[Dict]) -> str:
-    """Construit l'historique de conversation pour le contexte"""
+    """Construit l'historique de conversation pour le contexte LLM"""
     if not history:
         return "Début de conversation"
     
-    # Garder les 4 derniers échanges max
-    recent_history = history[-4:]
+    # Garder les 4-5 derniers échanges max
+    recent_history = history[-5:]
     lines = []
     
     for msg in recent_history:
         role = "Utilisateur" if msg.get("role") == "user" else "Coach"
-        content = msg.get("content", "")[:150]  # Tronquer si trop long
+        content = msg.get("content", "")[:200]  # Tronquer si trop long
         lines.append(f"{role}: {content}")
     
     return "\n".join(lines)
@@ -210,25 +240,39 @@ def _clean_response(response: str) -> str:
     if not response:
         return ""
     
-    # Supprimer les balises markdown excessives
     response = response.strip()
     
-    # Supprimer les répétitions du prompt système
-    if "CardioCoach" in response[:50] and "coach running" in response[:100].lower():
-        # Le modèle a répété le prompt, extraire la vraie réponse
-        lines = response.split("\n")
-        response = "\n".join(lines[-3:]) if len(lines) > 3 else response
+    # Supprimer les guillemets en début/fin si présents
+    if response.startswith('"') and response.endswith('"'):
+        response = response[1:-1]
     
-    # Limiter la longueur
-    if len(response) > 500:
-        # Couper au dernier point
-        response = response[:500]
-        last_period = response.rfind(".")
-        if last_period > 200:
+    # Limiter la longueur raisonnable
+    if len(response) > 600:
+        # Couper au dernier point ou emoji
+        response = response[:600]
+        last_period = max(response.rfind("."), response.rfind("!"), response.rfind("?"))
+        if last_period > 300:
             response = response[:last_period + 1]
     
     return response.strip()
 
 
-# Export pour utilisation dans chat_engine.py
-__all__ = ["generate_llm_response", "check_ollama_available", "OLLAMA_MODEL", "OLLAMA_HOST"]
+# Fonction pour obtenir les infos du modèle utilisé
+def get_llm_info() -> dict:
+    """Retourne les informations sur le modèle LLM configuré"""
+    return {
+        "provider": LLM_PROVIDER,
+        "model": LLM_MODEL,
+        "key_configured": bool(EMERGENT_LLM_KEY),
+        "timeout_sec": LLM_TIMEOUT
+    }
+
+
+# Export pour utilisation dans server.py
+__all__ = [
+    "generate_llm_response", 
+    "check_llm_available", 
+    "get_llm_info",
+    "LLM_MODEL", 
+    "LLM_PROVIDER"
+]
