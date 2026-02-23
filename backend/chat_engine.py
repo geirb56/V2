@@ -1457,6 +1457,30 @@ def detect_intent(message: str) -> Tuple[str, float]:
         return "progression", 0.90
     
     # ============================================================
+    # ÉTAPE 2c: Détections spécifiques prioritaires
+    # ============================================================
+    
+    # Nutrition / Alimentation
+    nutrition_keywords = ["nutrition", "manger", "alimentation", "glucide", "protéine", "hydrat", "boire", "eau", "gel", "boisson", "repas", "petit-déjeuner", "crampe", "nourrir", "avant la course", "après la course"]
+    if any(kw in message_lower for kw in nutrition_keywords):
+        return "nutrition", 0.90
+    
+    # Préparation course / Compétition
+    prepa_keywords = ["course dans", "compétition", "10km", "semi", "marathon", "trail", "dossard", "jour j", "objectif chrono", "préparer une course", "préparer un", "avant ma course"]
+    if any(kw in message_lower for kw in prepa_keywords):
+        return "prepa_course", 0.90
+    
+    # Zones cardiaques / Intensité
+    zones_keywords = ["zone", "z1", "z2", "z3", "z4", "z5", "intensité", "répartition", "équilibr"]
+    if any(kw in message_lower for kw in zones_keywords) and "améliorer" not in message_lower:
+        return "zones", 0.90
+    
+    # Sensations / Bien-être
+    sensations_keywords = ["je me sens", "sensation", "comment tu te sens", "forme du jour", "bien aujourd'hui", "mal aujourd'hui", "motivé", "démotivé"]
+    if any(kw in message_lower for kw in sensations_keywords):
+        return "sensations", 0.85
+    
+    # ============================================================
     # ÉTAPE 3: Pour les autres questions, détection classique par keywords
     # ============================================================
     best_category = "fallback"
