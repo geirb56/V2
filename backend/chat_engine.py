@@ -1450,6 +1450,13 @@ def detect_intent(message: str) -> Tuple[str, float]:
         return "ameliorer_general", 0.85
     
     # ============================================================
+    # ÉTAPE 2b: Détecter les questions sur la PROGRESSION / INDICATEURS
+    # ============================================================
+    progression_keywords = ["progress", "indicateur", "surveiller", "mesurer", "savoir si je", "comment voir", "évolue", "évolution", "stagne", "plateau"]
+    if any(kw in message_lower for kw in progression_keywords):
+        return "progression", 0.90
+    
+    # ============================================================
     # ÉTAPE 3: Pour les autres questions, détection classique par keywords
     # ============================================================
     best_category = "fallback"
