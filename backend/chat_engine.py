@@ -1138,7 +1138,78 @@ TEMPLATES = {
         "relances": []
     },
     
-    # ==================== CATÉGORIE 19c: AMÉLIORER GÉNÉRAL ====================
+    # ==================== CATÉGORIE 19c: POINTS FORTS ====================
+    "points_forts": {
+        "keywords": [],
+        "intros": [
+            "Tes points forts, voyons ça ! 💪",
+            "Ce sur quoi tu excelles, c'est important !",
+            "Analysons tes forces !",
+            "Tes atouts running, les voilà !",
+        ],
+        "analyses": [
+            "Tes points forts actuels :\n• **Régularité** : {nb_seances} séances cette semaine, c'est {regularite_comment}\n• **Allure** : {allure}/km, {allure_comment}\n• **Cadence** : {cadence} spm, {cadence_comment}",
+            "En analysant tes données, tes forces sont :\n• Volume : {km_semaine} km/sem ({volume_comment})\n• Endurance : {z1z2}% en zones basses\n• Régularité : {nb_seances} séances/sem",
+            "Ce qui ressort de ton profil :\n• Tu cours régulièrement ({nb_seances} séances/sem) ✓\n• Ton allure ({allure}/km) est {allure_comment} ✓\n• Tu gères bien la charge (ratio {ratio}) ✓",
+        ],
+        "conseils": [
+            "Capitalise sur ta régularité ! C'est LA base de la progression en course.",
+            "Ton point fort principal : ta constance. Continue à courir régulièrement, les gains viendront.",
+            "Ta force : tu cours ! Beaucoup abandonnent, toi tu persévères. C'est énorme.",
+            "Point fort à exploiter : ta base d'endurance. Tu peux commencer à ajouter du travail spécifique.",
+        ],
+        "relances": []
+    },
+    
+    # ==================== CATÉGORIE 19d: POINTS FAIBLES ====================
+    "points_faibles": {
+        "keywords": [],
+        "intros": [
+            "Tes axes d'amélioration, regardons ça ! 🎯",
+            "Ce qu'on peut travailler ensemble !",
+            "Où tu peux progresser, voilà !",
+            "Les pistes d'amélioration !",
+        ],
+        "analyses": [
+            "Tes axes d'amélioration :\n• **Zones** : {z1z2}% en endurance (idéal = 80%). {zones_conseil}\n• **Cadence** : {cadence} spm. {cadence_comment}\n• **Volume** : {km_semaine} km/sem, {volume_comment}",
+            "En analysant tes données, tu peux progresser sur :\n• L'équilibre des zones : trop de Z3 ({z3}%), pas assez de Z2\n• Le volume progressif : +10% max par semaine\n• La récupération : assure-toi de bien dormir",
+            "Points à travailler :\n• {point_ameliorer}\n• Plus de temps en endurance fondamentale (Z2)\n• Travail technique (cadence, foulée)",
+        ],
+        "conseils": [
+            "Pour améliorer tes points faibles, concentre-toi sur UN seul à la fois. Trop de changements = échec.",
+            "L'axe #1 à travailler : l'endurance fondamentale. Plus de Z2 = meilleure base = progression durable.",
+            "Ton point faible le plus simple à corriger : la répartition des zones. Cours plus lentement sur les sorties faciles !",
+            "Conseil : ne vois pas ça comme des faiblesses, mais comme des opportunités de progression ! 🚀",
+        ],
+        "relances": []
+    },
+    
+    # ==================== CATÉGORIE 19e: ENDURANCE FONDAMENTALE ====================
+    "endurance_fondamentale": {
+        "keywords": [],
+        "intros": [
+            "L'endurance fondamentale, LA base de tout ! 🏃",
+            "La Z2, parlons-en ! C'est crucial.",
+            "L'endurance de base, le secret des pros !",
+            "Le travail en zone 2, excellent sujet !",
+        ],
+        "analyses": [
+            "L'endurance fondamentale (Z2), c'est courir à une allure où tu peux PARLER facilement. Ton corps utilise les graisses comme carburant et développe ta base aérobie.",
+            "Actuellement, tu passes {z1z2}% de ton temps en Z1-Z2. L'idéal pour progresser = 80% en endurance facile, 20% en intensité.",
+            "La Z2, c'est l'allure qui paraît 'trop facile'. Mais c'est là que se construisent tes adaptations profondes : capillaires, mitochondries, économie de course.",
+            "Ton allure Z2 devrait être environ {allure_z2}/km (30-60 sec plus lent que ton allure moyenne). Si tu souffles, c'est trop vite !",
+        ],
+        "conseils": [
+            "Pour travailler l'endurance fondamentale :\n• Cours à une allure où tu peux tenir une conversation\n• Vise 70-75% de ta FC max\n• Ne regarde pas l'allure, focus sur le ressenti\n• 1h minimum pour les effets optimaux",
+            "Astuce Z2 : cours avec quelqu'un et discute. Si tu peux pas parler = trop vite. C'est le test le plus simple !",
+            "Ajoute une sortie longue en Z2 le weekend (1h15-1h30). C'est LA séance clé pour développer ton endurance.",
+            "Le piège : courir trop vite en pensant être en Z2. Vérifie avec un cardio : reste sous 75% de ta FC max.",
+            "L'endurance fondamentale, c'est frustrant au début (impression de ne pas progresser). Mais après 2-3 mois, les gains sont énormes !",
+        ],
+        "relances": []
+    },
+    
+    # ==================== CATÉGORIE 19f: AMÉLIORER GÉNÉRAL ====================
     "ameliorer_general": {
         "keywords": [],
         "intros": [
