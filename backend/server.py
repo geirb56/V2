@@ -4797,11 +4797,14 @@ async def send_chat_message(request: ChatRequest):
         ).sort("timestamp", -1).limit(8).to_list(8)
         recent_messages.reverse()  # Ordre chronologique
         
-        # ÉTAPE 1: Essayer d'abord Emergent LLM (GPT-4o-mini, serveur uniquement)
+        # ÉTAPE 1: Anonymiser les données avant envoi à GPT (conformité Strava ToS)
+        anonymized_context = anonymize_weekly_stats(context)
+        
+        # ÉTAPE 2: Essayer GPT-4o-mini avec données ANONYMISÉES uniquement
         try:
-            llm_response, llm_success, llm_metadata = await generate_llm_response(
+            llm_response, llm_success, llm_metadata = await enrich_chat_response(
                 user_message=request.message,
-                context=context,
+                anonymized_context=anonymized_context,
                 conversation_history=recent_messages,
                 user_id=user_id
             )
@@ -4809,11 +4812,11 @@ async def send_chat_message(request: ChatRequest):
             if llm_success and llm_response:
                 response_text = llm_response
                 used_llm = True
-                logger.info(f"[Chat] ✅ Réponse Emergent LLM ({LLM_MODEL}) en {llm_metadata.get('duration_sec', 0)}s pour user {user_id}")
+                logger.info(f"[Chat] ✅ Réponse GPT ({LLM_MODEL}) en {llm_metadata.get('duration_sec', 0)}s pour user {user_id}")
         except Exception as e:
             logger.warning(f"[Chat] LLM fallback - erreur: {e}")
         
-        # ÉTAPE 2: Fallback vers templates Python si LLM échoue
+        # ÉTAPE 3: Fallback vers templates Python si LLM échoue
         if not response_text:
             logger.info(f"[Chat] Fallback templates Python pour user {user_id}")
             chat_result = await generate_chat_response(
@@ -4822,7 +4825,6 @@ async def send_chat_message(request: ChatRequest):
                 workouts=workouts,
                 user_goal=user_goal
             )
-            # Handle both old (string) and new (dict) return formats
             if isinstance(chat_result, dict):
                 response_text = chat_result.get("response", "")
                 suggestions = chat_result.get("suggestions", [])
@@ -4830,12 +4832,10 @@ async def send_chat_message(request: ChatRequest):
             else:
                 response_text = chat_result
         
-        # Générer des suggestions si pas déjà fait (utilise le système existant)
+        # Générer des suggestions
         if not suggestions and not used_llm:
-            # Les suggestions viennent du système de templates
             pass
         elif used_llm and not suggestions:
-            # Suggestions par défaut pour les réponses LLM
             suggestions = [
                 "Comment équilibrer mes zones d'entraînement ?",
                 f"Comment améliorer mon allure de {context.get('allure', '6:00')}/km ?",
