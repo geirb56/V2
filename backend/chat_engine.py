@@ -1690,6 +1690,13 @@ def generate_response(message: str, context: Dict, category: str = None) -> str:
     
     parts.extend(["", conseil])
     
+    # RAG: Intégrer un tip de la knowledge base si disponible
+    rag_tips = context.get("rag_tips", [])
+    if rag_tips:
+        # Sélectionner un tip pertinent et l'intégrer
+        tip = random.choice(rag_tips)
+        parts.extend(["", f"💡 {tip}"])
+    
     return "\n".join(parts).strip()
 
 
