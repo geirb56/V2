@@ -11,6 +11,7 @@ import Digest from "@/pages/Digest";
 import Settings from "@/pages/Settings";
 import Subscription from "@/pages/Subscription";
 import Layout from "@/components/Layout";
+import IOSPWAHint from "@/components/IOSPWAHint";
 
 function App() {
   return (
@@ -32,6 +33,8 @@ function App() {
           </Routes>
         </BrowserRouter>
         <Toaster position="bottom-right" />
+        {/* PWA iOS hint - discret, one-time, non-bloquant */}
+        <IOSPWAHint />
       </div>
     </LanguageProvider>
   );
