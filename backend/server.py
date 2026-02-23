@@ -4857,8 +4857,9 @@ async def send_chat_message(request: ChatRequest):
     
     messages_remaining = max(0, messages_limit - message_count - 1) if not is_unlimited else 999
     
-    source = f"LLM ({OLLAMA_MODEL})" if used_llm else "Templates Python"
-    logger.info(f"Chat message processed for user {user_id} (tier={tier}, source={source}). Remaining: {messages_remaining}")
+    source = f"Emergent LLM ({LLM_MODEL})" if used_llm else "Templates Python"
+    duration_info = f" en {llm_metadata.get('duration_sec', 0)}s" if used_llm else ""
+    logger.info(f"Chat message processed for user {user_id} (tier={tier}, source={source}{duration_info}). Remaining: {messages_remaining}")
     
     return ChatResponse(
         response=response_text,
