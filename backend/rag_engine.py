@@ -944,7 +944,7 @@ def generate_workout_analysis_rag(
     all_workouts: List[Dict] = None,
     user_goal: Dict = None
 ) -> Dict:
-    """Génère une analyse de séance enrichie par RAG"""
+    """Génère une analyse de séance enrichie par RAG avec données Strava détaillées"""
     
     # Basic workout data
     km_total = workout.get("distance_km", 0)
@@ -970,12 +970,62 @@ def generate_workout_analysis_rag(
     cadence_moy = workout.get("avg_cadence_spm", 0)
     zones = workout.get("effort_zone_distribution", {})
     
+    # === RAG ENRICHI: Données Strava détaillées ===
+    splits = workout.get("splits", [])
+    split_analysis = workout.get("split_analysis", {})
+    km_splits = workout.get("km_splits", [])
+    hr_analysis = workout.get("hr_analysis", {})
+    cadence_analysis = workout.get("cadence_analysis", {})
+    elevation_analysis = workout.get("elevation_analysis", {})
+    
+    # Analyze splits for RAG output
+    splits_text = ""
+    if splits and len(splits) >= 2:
+        # Get first and last km paces
+        first_km_pace = splits[0].get("pace_str", "N/A") if splits else "N/A"
+        last_km_pace = splits[-1].get("pace_str", "N/A") if splits else "N/A"
+        
+        if split_analysis:
+            fastest_km = split_analysis.get("fastest_km", "?")
+            slowest_km = split_analysis.get("slowest_km", "?")
+            pace_drop = split_analysis.get("pace_drop", 0)
+            negative_split = split_analysis.get("negative_split", False)
+            
+            if negative_split:
+                splits_text = f"Negative split ! Tu as accéléré de {first_km_pace} (km1) à {last_km_pace} (dernier km). Excellent contrôle !"
+            elif pace_drop > 1:
+                splits_text = f"Tu as décroché en fin de sortie : {first_km_pace} au km1 → {last_km_pace} au dernier km (-{pace_drop:.0f} sec/km). Pense à partir plus cool."
+            else:
+                splits_text = f"Allure stable : {first_km_pace} au km1, {last_km_pace} au dernier km. Bonne régularité !"
+    
+    # HR drift analysis
+    hr_drift_text = ""
+    if hr_analysis:
+        hr_drift = hr_analysis.get("hr_drift", 0)
+        if hr_drift > 10:
+            hr_drift_text = f"Dérive cardiaque de +{hr_drift} bpm entre début et fin. Normal sur une sortie longue, mais attention à bien s'hydrater."
+        elif hr_drift < -5:
+            hr_drift_text = f"Ta FC a baissé en fin de sortie (-{abs(hr_drift)} bpm). Tu étais bien échauffé !"
+    
+    # Cadence stability
+    cadence_text = ""
+    if cadence_analysis:
+        stability = cadence_analysis.get("cadence_stability", 100)
+        min_cad = cadence_analysis.get("min_cadence", 0)
+        max_cad = cadence_analysis.get("max_cadence", 0)
+        if stability < 85:
+            cadence_text = f"Cadence variable ({min_cad}-{max_cad} spm). Essaie de maintenir une foulée plus régulière."
+        elif cadence_moy < 165:
+            cadence_text = f"Cadence à travailler ({cadence_moy} spm). Vise 170-180 pour plus d'efficacité."
+    
     # Retrieve similar workouts
     similar_workouts = retrieve_similar_workouts(workout, all_workouts or [])
     
     # Calculate comparison with similar
     progression = None
     date_precedente = None
+    similar_splits_comparison = ""
+    
     if similar_workouts:
         prev = similar_workouts[0]
         prev_pace = prev.get("avg_pace_min_km", 0)
@@ -986,6 +1036,16 @@ def generate_workout_analysis_rag(
             elif diff < -0.1:
                 progression = f"{int(-diff * 60)} sec/km plus lent"
         date_precedente = prev.get("date", "")[:10] if prev.get("date") else None
+        
+        # Compare splits with similar workout
+        prev_splits = prev.get("split_analysis", {})
+        if prev_splits and split_analysis:
+            prev_drop = prev_splits.get("pace_drop", 0)
+            current_drop = split_analysis.get("pace_drop", 0)
+            if current_drop < prev_drop - 0.5:
+                similar_splits_comparison = f"Meilleure régularité que le {date_precedente} (décrochage réduit)."
+            elif current_drop > prev_drop + 0.5:
+                similar_splits_comparison = f"Plus de décrochage que le {date_precedente}. Travaille le pacing."
     
     # Detect points forts/ameliorer
     points_forts = []
@@ -1005,6 +1065,19 @@ def generate_workout_analysis_rag(
         points_forts.append("bonne gestion de l'intensité")
     if z4_z5 > 30:
         points_ameliorer.append("récup nécessaire après cette intensité")
+    
+    # Splits analysis
+    if split_analysis:
+        if split_analysis.get("negative_split"):
+            points_forts.append("negative split")
+        elif split_analysis.get("pace_drop", 0) < 0.5:
+            points_forts.append("régularité en allure")
+        elif split_analysis.get("pace_drop", 0) > 1:
+            points_ameliorer.append("gestion de l'allure en fin de sortie")
+    
+    # HR drift
+    if hr_analysis and hr_analysis.get("hr_drift", 0) > 15:
+        points_ameliorer.append("hydratation et gestion de l'effort")
     
     # Progression
     if progression and "plus rapide" in progression:
