@@ -1,16 +1,14 @@
 """
-CardioCoach - Module LLM Enrichissement (GPT-4o-mini)
-# LLM serveur uniquement – données anonymisées uniquement
+CardioCoach - Module LLM Coach (GPT-4o-mini)
 
 Ce module gère l'enrichissement des textes coach via GPT-4o-mini.
-IMPORTANT: Seules les données CALCULÉES et ANONYMISÉES sont envoyées à OpenAI.
-Aucune donnée brute Strava n'est transmise (conformité ToS).
+Les données d'entraînement sont envoyées directement au LLM pour
+générer des analyses personnalisées et motivantes.
 
 Flux:
-1. Calculs stats 100% Python local (km, allure, zones, etc.)
-2. Construction JSON anonymisé
-3. Envoi à GPT-4o-mini pour génération texte
-4. Fallback templates Python si erreur
+1. Réception des données d'entraînement
+2. Envoi à GPT-4o-mini pour génération texte
+3. Fallback templates Python si erreur
 """
 
 import os
@@ -26,12 +24,12 @@ logger = logging.getLogger(__name__)
 
 # Configuration
 EMERGENT_LLM_KEY = os.environ.get("EMERGENT_LLM_KEY", "")
-LLM_MODEL = "gpt-4.1-mini"  # GPT-4o-mini
+LLM_MODEL = "gpt-4.1-mini"
 LLM_PROVIDER = "openai"
-LLM_TIMEOUT = 10  # secondes max
+LLM_TIMEOUT = 10
 
 # ============================================================
-# PROMPTS SYSTÈME FIXES
+# PROMPTS SYSTÈME
 # ============================================================
 
 SYSTEM_PROMPT_COACH = """Tu es un coach running expérimenté, empathique et précis. 
@@ -73,32 +71,23 @@ Sois concret et encourageant. Max 4-5 phrases."""
 
 
 # ============================================================
-# FONCTIONS D'ENRICHISSEMENT GPT
+# FONCTIONS D'ENRICHISSEMENT
 # ============================================================
 
 async def enrich_chat_response(
     user_message: str,
-    anonymized_context: Dict,
+    context: Dict,
     conversation_history: List[Dict],
     user_id: str = "unknown"
 ) -> Tuple[Optional[str], bool, Dict]:
     """
     Enrichit la réponse chat avec GPT-4o-mini.
-    
-    Args:
-        user_message: Question de l'utilisateur
-        anonymized_context: Données ANONYMISÉES (pas de raw Strava)
-        conversation_history: Historique des échanges
-        user_id: ID utilisateur pour logs
-        
-    Returns:
-        (response_text, success, metadata)
     """
-    context_json = _build_anonymized_json(anonymized_context)
-    history_str = _build_history_string(conversation_history)
+    context_str = _format_context(context)
+    history_str = _format_history(conversation_history)
     
-    prompt = f"""DONNÉES UTILISATEUR (anonymisées):
-{context_json}
+    prompt = f"""DONNÉES UTILISATEUR:
+{context_str}
 
 HISTORIQUE CONVERSATION:
 {history_str}
@@ -111,23 +100,16 @@ Réponds en tant que coach running motivant."""
 
 
 async def enrich_weekly_review(
-    anonymized_stats: Dict,
+    stats: Dict,
     user_id: str = "unknown"
 ) -> Tuple[Optional[str], bool, Dict]:
     """
     Enrichit le bilan hebdomadaire avec GPT-4o-mini.
-    
-    Args:
-        anonymized_stats: Stats ANONYMISÉES de la semaine
-        user_id: ID utilisateur pour logs
-        
-    Returns:
-        (bilan_text, success, metadata)
     """
-    context_json = _build_anonymized_json(anonymized_stats)
+    context_str = _format_context(stats)
     
-    prompt = f"""STATS SEMAINE (anonymisées):
-{context_json}
+    prompt = f"""STATS SEMAINE:
+{context_str}
 
 Génère un bilan hebdomadaire motivant et personnalisé basé sur ces données."""
 
@@ -135,23 +117,16 @@ Génère un bilan hebdomadaire motivant et personnalisé basé sur ces données.
 
 
 async def enrich_workout_analysis(
-    anonymized_workout: Dict,
+    workout: Dict,
     user_id: str = "unknown"
 ) -> Tuple[Optional[str], bool, Dict]:
     """
     Enrichit l'analyse d'une séance avec GPT-4o-mini.
-    
-    Args:
-        anonymized_workout: Données ANONYMISÉES de la séance
-        user_id: ID utilisateur pour logs
-        
-    Returns:
-        (analysis_text, success, metadata)
     """
-    context_json = _build_anonymized_json(anonymized_workout)
+    context_str = _format_context(workout)
     
-    prompt = f"""DONNÉES SÉANCE (anonymisées):
-{context_json}
+    prompt = f"""DONNÉES SÉANCE:
+{context_str}
 
 Analyse cette séance en tant que coach running bienveillant."""
 
@@ -180,7 +155,7 @@ async def _call_gpt(
     }
     
     if not EMERGENT_LLM_KEY or not EMERGENT_LLM_KEY.startswith("sk-emergent"):
-        logger.warning(f"[LLM] Emergent LLM Key non configurée")
+        logger.warning("[LLM] Emergent LLM Key non configurée")
         return None, False, metadata
     
     try:
@@ -194,10 +169,8 @@ async def _call_gpt(
             system_message=system_prompt
         ).with_model(LLM_PROVIDER, LLM_MODEL)
         
-        user_msg = UserMessage(text=user_prompt)
-        
         response = await asyncio.wait_for(
-            chat.send_message(user_msg),
+            chat.send_message(UserMessage(text=user_prompt)),
             timeout=LLM_TIMEOUT
         )
         
@@ -208,7 +181,7 @@ async def _call_gpt(
         response_text = _clean_response(str(response))
         
         if response_text:
-            logger.info(f"[LLM] ✅ {context_type} enrichi par {LLM_MODEL} en {elapsed:.2f}s pour user {user_id}")
+            logger.info(f"[LLM] ✅ {context_type} enrichi en {elapsed:.2f}s")
             return response_text, True, metadata
         else:
             logger.warning(f"[LLM] Réponse vide pour {context_type}")
@@ -217,68 +190,35 @@ async def _call_gpt(
     except asyncio.TimeoutError:
         elapsed = time.time() - start_time
         metadata["duration_sec"] = round(elapsed, 2)
-        logger.warning(f"[LLM] ⏱️ Timeout {context_type} après {elapsed:.2f}s")
+        logger.warning(f"[LLM] ⏱️ Timeout après {elapsed:.2f}s")
         return None, False, metadata
         
     except Exception as e:
         elapsed = time.time() - start_time
         metadata["duration_sec"] = round(elapsed, 2)
-        logger.error(f"[LLM] ❌ Erreur {context_type}: {e}")
+        logger.error(f"[LLM] ❌ Erreur: {e}")
         return None, False, metadata
 
 
-def _build_anonymized_json(data: Dict) -> str:
-    """
-    Construit un JSON ANONYMISÉ des données calculées.
-    IMPORTANT: Aucune donnée brute Strava ici, seulement des stats agrégées.
-    """
-    # Filtrer pour ne garder que les données anonymisées/calculées
-    safe_keys = {
-        # Stats semaine
-        "km_semaine", "nb_seances", "duree_totale_min", "allure_moy",
-        "cadence_moy", "fc_moyenne", "denivele_total",
-        # Zones (pourcentages uniquement)
-        "pct_zone1", "pct_zone2", "pct_zone3", "pct_zone4", "pct_zone5",
-        "pct_endurance", "pct_intensite",
-        # Charge et récup
-        "ratio_charge", "tendance", "fatigue", "recuperation",
-        # Séance individuelle (anonymisée)
-        "distance_km", "duree_min", "allure", "cadence", "fc_max", "fc_moy",
-        "denivele", "type_seance", "regularity_score",
-        # Splits (anonymisés)
-        "nb_splits", "fastest_km", "slowest_km", "pace_drop", "negative_split",
-        # Objectifs
-        "objectif", "jours_restants",
-        # Divers
-        "points_forts", "points_ameliorer", "conseil", "niveau"
-    }
-    
-    filtered = {}
-    for key, value in data.items():
-        if key in safe_keys:
-            filtered[key] = value
-    
-    # Formatter en texte lisible
+def _format_context(data: Dict) -> str:
+    """Formate les données en texte lisible pour le LLM"""
     lines = []
-    for key, value in filtered.items():
-        if value is not None and value != "":
+    for key, value in data.items():
+        if value is not None and value != "" and value != {} and value != []:
             lines.append(f"- {key}: {value}")
-    
-    return "\n".join(lines) if lines else "Données insuffisantes"
+    return "\n".join(lines) if lines else "Aucune donnée"
 
 
-def _build_history_string(history: List[Dict]) -> str:
-    """Construit l'historique de conversation (anonymisé)"""
+def _format_history(history: List[Dict]) -> str:
+    """Formate l'historique de conversation"""
     if not history:
         return "Début de conversation"
     
-    recent = history[-4:]
     lines = []
-    for msg in recent:
+    for msg in history[-4:]:
         role = "User" if msg.get("role") == "user" else "Coach"
         content = msg.get("content", "")[:150]
         lines.append(f"{role}: {content}")
-    
     return "\n".join(lines)
 
 
@@ -288,11 +228,9 @@ def _clean_response(response: str) -> str:
         return ""
     
     response = response.strip()
-    
     if response.startswith('"') and response.endswith('"'):
         response = response[1:-1]
     
-    # Limiter la longueur
     if len(response) > 700:
         response = response[:700]
         last_period = max(response.rfind("."), response.rfind("!"), response.rfind("?"))
@@ -303,75 +241,6 @@ def _clean_response(response: str) -> str:
 
 
 # ============================================================
-# HELPERS POUR ANONYMISATION
-# ============================================================
-
-def anonymize_weekly_stats(context: Dict) -> Dict:
-    """
-    Prépare les stats hebdo ANONYMISÉES pour GPT.
-    Transforme les données calculées en format safe.
-    """
-    zones = context.get("zones", {})
-    
-    return {
-        "km_semaine": context.get("km_semaine", 0),
-        "nb_seances": context.get("nb_seances", 0),
-        "allure_moy": context.get("allure", "N/A"),
-        "cadence_moy": context.get("cadence", 0),
-        "pct_endurance": zones.get("z1", 0) + zones.get("z2", 0),
-        "pct_intensite": zones.get("z4", 0) + zones.get("z5", 0),
-        "ratio_charge": context.get("ratio", 1.0),
-        "objectif": context.get("objectif_nom", ""),
-        "jours_restants": context.get("jours_course"),
-        "tendance": "stable",
-        "points_forts": context.get("points_forts", []),
-        "points_ameliorer": context.get("points_ameliorer", []),
-    }
-
-
-def anonymize_workout_stats(workout: Dict) -> Dict:
-    """
-    Prépare les stats d'une séance ANONYMISÉES pour GPT.
-    Aucune donnée identifiante (nom, date, GPS, etc.)
-    """
-    split_analysis = workout.get("split_analysis", {})
-    hr_analysis = workout.get("hr_analysis", {})
-    
-    return {
-        "distance_km": workout.get("distance_km", 0),
-        "duree_min": workout.get("duration_min", 0),
-        "allure": workout.get("average_pace_str", "N/A"),
-        "cadence": workout.get("average_cadence", 0),
-        "fc_moy": hr_analysis.get("avg_hr", 0),
-        "fc_max": hr_analysis.get("max_hr", 0),
-        "denivele": workout.get("elevation_gain", 0),
-        "type_seance": _detect_workout_type(workout),
-        "nb_splits": split_analysis.get("total_splits", 0),
-        "fastest_km": split_analysis.get("fastest_km"),
-        "slowest_km": split_analysis.get("slowest_km"),
-        "pace_drop": split_analysis.get("pace_drop", 0),
-        "negative_split": split_analysis.get("negative_split", False),
-        "regularity_score": split_analysis.get("consistency_score", 0),
-    }
-
-
-def _detect_workout_type(workout: Dict) -> str:
-    """Détecte le type de séance basé sur les données"""
-    distance = workout.get("distance_km", 0)
-    zones = workout.get("effort_zone_distribution", {})
-    z4z5 = zones.get("z4", 0) + zones.get("z5", 0)
-    
-    if distance >= 15:
-        return "sortie_longue"
-    elif z4z5 >= 30:
-        return "fractionne_intensif"
-    elif z4z5 >= 15:
-        return "tempo"
-    else:
-        return "endurance_fondamentale"
-
-
-# ============================================================
 # EXPORTS
 # ============================================================
 
@@ -379,8 +248,6 @@ __all__ = [
     "enrich_chat_response",
     "enrich_weekly_review", 
     "enrich_workout_analysis",
-    "anonymize_weekly_stats",
-    "anonymize_workout_stats",
     "LLM_MODEL",
     "LLM_PROVIDER"
 ]
