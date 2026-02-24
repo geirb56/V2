@@ -4743,14 +4743,55 @@ async def delete_training_goal(user_id: str = "default"):
     }
 
 
+@api_router.get("/training-plan")
+async def get_training_plan(user_id: str = "default"):
+    """
+    Récupère le plan d'entraînement dynamique pour l'utilisateur.
+    Génère automatiquement les séances via LLM basé sur le cycle.
+    """
+    return await generate_dynamic_training_plan(db, user_id)
+
+
+@api_router.post("/training-plan/set-goal")
+async def set_training_plan_goal(goal: str, user_id: str = "default"):
+    """
+    Définit l'objectif d'entraînement (10K, SEMI, MARATHON, etc.)
+    """
+    valid_goals = list(GOAL_CONFIG.keys())
+    
+    if goal.upper() not in valid_goals:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Objectif invalide. Choisir parmi: {valid_goals}"
+        )
+    
+    goal_upper = goal.upper()
+    config = GOAL_CONFIG[goal_upper]
+    
+    await db.training_cycles.update_one(
+        {"user_id": user_id},
+        {"$set": {
+            "goal": goal_upper,
+            "updated_at": datetime.now(timezone.utc)
+        }},
+        upsert=True
+    )
+    
+    logger.info(f"[Training] Goal updated for user {user_id}: {goal_upper}")
+    
+    return {
+        "status": "updated",
+        "goal": goal_upper,
+        "cycle_weeks": config["cycle_weeks"],
+        "description": config["description"]
+    }
+
+
+# Garder l'ancien endpoint pour compatibilité
 @api_router.get("/training/dynamic-plan")
-async def get_dynamic_training_plan(user_id: str = "default"):
-    """
-    Génère un plan d'entraînement dynamique basé sur les données utilisateur.
-    Utilise le cycle d'entraînement et génère automatiquement les séances via LLM.
-    """
-    result = await generate_dynamic_training_plan(db, user_id)
-    return result
+async def get_dynamic_training_plan_legacy(user_id: str = "default"):
+    """Legacy endpoint - utiliser /training-plan à la place"""
+    return await generate_dynamic_training_plan(db, user_id)
 
 
 @api_router.get("/training/goals")
