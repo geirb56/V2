@@ -40,7 +40,9 @@ from llm_coach import LLM_MODEL, LLM_PROVIDER
 from coach_service import (
     analyze_workout as coach_analyze_workout,
     weekly_review as coach_weekly_review,
-    chat_response as coach_chat_response
+    chat_response as coach_chat_response,
+    get_cache_stats,
+    clear_cache
 )
 
 # Import RAG engine for enriched analyses
