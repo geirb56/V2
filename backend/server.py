@@ -44,6 +44,7 @@ from coach_service import (
     analyze_workout as coach_analyze_workout,
     weekly_review as coach_weekly_review,
     chat_response as coach_chat_response,
+    generate_dynamic_training_plan,
     get_cache_stats,
     clear_cache,
     get_metrics as get_coach_metrics,
