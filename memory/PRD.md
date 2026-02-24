@@ -739,6 +739,28 @@ Dérive cardiaque: +25 bpm (Hydratation à surveiller)
 
 **Test Report:** `/app/test_reports/iteration_21.json` (100% pass rate - 43 backend + 11 frontend tests)
 
+### Phase 24 - GPT-4o-mini Integration (Feb 2026) ✅
+**Enrichissement LLM avec données anonymisées (conformité Strava ToS)**
+
+**Architecture:**
+- Calculs stats: 100% Python local (km, allure, zones, splits)
+- Textes coach: GPT-4o-mini via Emergent LLM Key
+- Données envoyées: JSON anonymisé uniquement (pas de raw Strava)
+
+**Endpoints enrichis:**
+1. `POST /api/chat/send` - Chat coach conversationnel
+2. `GET /api/rag/weekly-review` - Bilan hebdomadaire
+3. `GET /api/rag/workout/{id}` - Analyse de séance
+
+**Fichiers modifiés:**
+- `/app/backend/llm_coach.py` - Module complet avec anonymisation
+- `/app/backend/server.py` - Intégration dans les 3 endpoints
+
+**Prompt système:**
+"Tu es un coach running expérimenté, empathique et précis. Réponds en français courant avec contractions. Structure: 1. Positif d'abord, 2. Analyse claire, 3. Conseil actionable, 4. Question de relance."
+
+**Fallback:** Templates Python si GPT échoue
+
 ### P1 - High Priority (Next)
 - Allow user to configure personal max HR in Settings
 
