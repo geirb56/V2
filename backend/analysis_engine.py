@@ -352,8 +352,9 @@ def format_pace(pace_min_km: float) -> str:
     """Format pace as X:XX/km"""
     if not pace_min_km:
         return "-"
-    mins = int(pace_min_km)
-    secs = int((pace_min_km - mins) * 60)
+    total_seconds = round(pace_min_km * 60)
+    mins = total_seconds // 60
+    secs = total_seconds % 60
     return f"{mins}:{secs:02d}"
 
 
