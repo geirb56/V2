@@ -4823,7 +4823,8 @@ async def send_chat_message(request: ChatRequest):
         if isinstance(llm_metadata, dict):
             suggestions = llm_metadata.get("suggestions", [])
         
-        # Générer des suggestions si LLM utilisé
+        # Générer des suggestions si LLM utilisé et pas de suggestions
+        if used_llm and not suggestions:
             suggestions = [
                 "Comment équilibrer mes zones d'entraînement ?",
                 f"Comment améliorer mon allure de {context.get('allure', '6:00')}/km ?",
