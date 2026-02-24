@@ -4692,6 +4692,10 @@ async def refresh_training_context(user_id: str = "default"):
     start_date = goal["start_date"]
     cycle_weeks = goal["cycle_weeks"]
     
+    # Convertir en datetime aware si nécessaire
+    if isinstance(start_date, datetime) and start_date.tzinfo is None:
+        start_date = start_date.replace(tzinfo=timezone.utc)
+    
     if today < start_date:
         current_week = 0
     else:
