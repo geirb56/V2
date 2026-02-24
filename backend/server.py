@@ -5033,6 +5033,23 @@ async def clear_coach_cache():
     return {"success": True, **result}
 
 
+@api_router.get("/metrics")
+async def get_service_metrics():
+    """Get coach service metrics (LLM success rate, latency, etc.)"""
+    return {
+        "coach": get_coach_metrics(),
+        "cache": get_cache_stats()
+    }
+
+
+@api_router.delete("/metrics/reset")
+async def reset_service_metrics():
+    """Reset coach service metrics"""
+    old_metrics = reset_coach_metrics()
+    logger.info(f"Metrics reset. Previous: {old_metrics}")
+    return {"success": True, "previous": old_metrics}
+
+
 # Include the router
 app.include_router(api_router)
 
