@@ -33,14 +33,11 @@ from chat_engine import (
     get_remaining_messages
 )
 
-# Import LLM coach module (serveur uniquement - GPT-4o-mini données anonymisées)
-# LLM serveur uniquement – pas de données brutes Strava envoyées
+# Import LLM coach module (GPT-4o-mini)
 from llm_coach import (
     enrich_chat_response,
     enrich_weekly_review,
     enrich_workout_analysis,
-    anonymize_weekly_stats,
-    anonymize_workout_stats,
     LLM_MODEL,
     LLM_PROVIDER
 )
@@ -3018,19 +3015,17 @@ async def get_rag_weekly_review(user_id: str = "default"):
     # Generate RAG-enriched review (calculs 100% Python local)
     result = generate_weekly_review_rag(workouts, bilans, user_goal)
     
-    # ENRICHISSEMENT GPT-4o-mini avec données ANONYMISÉES
+    # ENRICHISSEMENT GPT-4o-mini
     enriched_summary = result["summary"]
     used_llm = False
     
     try:
-        # Préparer les stats anonymisées (pas de données brutes Strava)
-        anonymized_stats = {
+        weekly_stats = {
             "km_semaine": result["metrics"].get("km_total", 0),
             "nb_seances": result["metrics"].get("nb_seances", 0),
             "allure_moy": result["metrics"].get("allure_moyenne", "N/A"),
             "cadence_moy": result["metrics"].get("cadence_moyenne", 0),
-            "pct_endurance": result["metrics"].get("zones", {}).get("z1", 0) + result["metrics"].get("zones", {}).get("z2", 0),
-            "pct_intensite": result["metrics"].get("zones", {}).get("z4", 0) + result["metrics"].get("zones", {}).get("z5", 0),
+            "zones": result["metrics"].get("zones", {}),
             "ratio_charge": result["metrics"].get("ratio", 1.0),
             "points_forts": result.get("points_forts", []),
             "points_ameliorer": result.get("points_ameliorer", []),
@@ -3038,7 +3033,7 @@ async def get_rag_weekly_review(user_id: str = "default"):
         }
         
         llm_summary, llm_success, _ = await enrich_weekly_review(
-            anonymized_stats=anonymized_stats,
+            stats=weekly_stats,
             user_id=user_id
         )
         
@@ -3085,19 +3080,28 @@ async def get_rag_workout_analysis(workout_id: str, user_id: str = "default"):
     # Generate RAG-enriched analysis (calculs 100% Python local)
     result = generate_workout_analysis_rag(workout, all_workouts, user_goal)
     
-    # ENRICHISSEMENT GPT-4o-mini avec données ANONYMISÉES
+    # ENRICHISSEMENT GPT-4o-mini
     enriched_summary = result["summary"]
     used_llm = False
     
     try:
-        # Préparer les stats anonymisées (pas de données brutes Strava)
-        anonymized_workout = anonymize_workout_stats(workout)
-        anonymized_workout["comparison"] = result.get("comparison", {}).get("progression", "")
-        anonymized_workout["points_forts"] = result.get("points_forts", [])
-        anonymized_workout["points_ameliorer"] = result.get("points_ameliorer", [])
+        workout_stats = {
+            "distance_km": workout.get("distance_km", 0),
+            "duree_min": workout.get("duration_minutes", 0),
+            "allure": result.get("pace_str", "N/A"),
+            "fc_moy": workout.get("avg_heart_rate"),
+            "fc_max": workout.get("max_heart_rate"),
+            "denivele": workout.get("elevation_gain_m"),
+            "type": workout.get("type"),
+            "zones": workout.get("effort_zone_distribution", {}),
+            "splits": result.get("splits_analysis", {}),
+            "comparison": result.get("comparison", {}).get("progression", ""),
+            "points_forts": result.get("points_forts", []),
+            "points_ameliorer": result.get("points_ameliorer", []),
+        }
         
         llm_summary, llm_success, _ = await enrich_workout_analysis(
-            anonymized_workout=anonymized_workout,
+            workout=workout_stats,
             user_id=user_id
         )
         
