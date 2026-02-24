@@ -34,12 +34,13 @@ from chat_engine import (
 )
 
 # Import LLM coach module (GPT-4o-mini)
-from llm_coach import (
-    enrich_chat_response,
-    enrich_weekly_review,
-    enrich_workout_analysis,
-    LLM_MODEL,
-    LLM_PROVIDER
+from llm_coach import LLM_MODEL, LLM_PROVIDER
+
+# Import coach service (stratégie cascade)
+from coach_service import (
+    analyze_workout as coach_analyze_workout,
+    weekly_review as coach_weekly_review,
+    chat_response as coach_chat_response
 )
 
 # Import RAG engine for enriched analyses
