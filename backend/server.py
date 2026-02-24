@@ -4810,42 +4810,20 @@ async def send_chat_message(request: ChatRequest):
         ).sort("timestamp", -1).limit(8).to_list(8)
         recent_messages.reverse()  # Ordre chronologique
         
-        # ÉTAPE 1: Essayer GPT-4o-mini
-        try:
-            llm_response, llm_success, llm_metadata = await enrich_chat_response(
-                user_message=request.message,
-                context=context,
-                conversation_history=recent_messages,
-                user_id=user_id
-            )
-            
-            if llm_success and llm_response:
-                response_text = llm_response
-                used_llm = True
-                logger.info(f"[Chat] ✅ Réponse GPT ({LLM_MODEL}) en {llm_metadata.get('duration_sec', 0)}s")
-        except Exception as e:
-            logger.warning(f"[Chat] LLM fallback - erreur: {e}")
+        # Cascade LLM → Templates via coach_service
+        response_text, used_llm, llm_metadata = await coach_chat_response(
+            message=request.message,
+            context=context,
+            history=recent_messages,
+            user_id=user_id,
+            workouts=workouts,
+            user_goal=user_goal
+        )
         
-        # ÉTAPE 2: Fallback vers templates Python si LLM échoue
-        if not response_text:
-            logger.info(f"[Chat] Fallback templates Python pour user {user_id}")
-            chat_result = await generate_chat_response(
-                message=request.message,
-                user_id=user_id,
-                workouts=workouts,
-                user_goal=user_goal
-            )
-            if isinstance(chat_result, dict):
-                response_text = chat_result.get("response", "")
-                suggestions = chat_result.get("suggestions", [])
-                category = chat_result.get("category", "")
-            else:
-                response_text = chat_result
+        if isinstance(llm_metadata, dict):
+            suggestions = llm_metadata.get("suggestions", [])
         
-        # Générer des suggestions
-        if not suggestions and not used_llm:
-            pass
-        elif used_llm and not suggestions:
+        # Générer des suggestions si LLM utilisé
             suggestions = [
                 "Comment équilibrer mes zones d'entraînement ?",
                 f"Comment améliorer mon allure de {context.get('allure', '6:00')}/km ?",
