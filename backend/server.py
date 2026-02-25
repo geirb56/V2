@@ -4794,32 +4794,27 @@ async def delete_training_goal(user_id: str = "default"):
 
 
 @api_router.get("/training-plan")
-async def get_training_plan(user_id: str = "default"):
+async def get_training_plan(user: dict = Depends(auth_user)):
     """
     Récupère le plan d'entraînement dynamique pour l'utilisateur.
     Génère automatiquement les séances via LLM basé sur le cycle.
     """
-    return await generate_dynamic_training_plan(db, user_id)
+    return await generate_dynamic_training_plan(db, user["id"])
 
 
 @api_router.post("/training-plan/set-goal")
-async def set_training_plan_goal(goal: str, user_id: str = "default"):
+async def set_training_plan_goal(goal: str, user: dict = Depends(auth_user)):
     """
     Définit l'objectif d'entraînement (10K, SEMI, MARATHON, etc.)
     """
-    valid_goals = list(GOAL_CONFIG.keys())
-    
-    if goal.upper() not in valid_goals:
-        raise HTTPException(
-            status_code=400, 
-            detail=f"Objectif invalide. Choisir parmi: {valid_goals}"
-        )
+    if goal.upper() not in ["5K", "10K", "SEMI", "MARATHON", "ULTRA"]:
+        return {"error": "Invalid goal"}
     
     goal_upper = goal.upper()
     config = GOAL_CONFIG[goal_upper]
     
     await db.training_cycles.update_one(
-        {"user_id": user_id},
+        {"user_id": user["id"]},
         {"$set": {
             "goal": goal_upper,
             "updated_at": datetime.now(timezone.utc)
@@ -4827,7 +4822,7 @@ async def set_training_plan_goal(goal: str, user_id: str = "default"):
         upsert=True
     )
     
-    logger.info(f"[Training] Goal updated for user {user_id}: {goal_upper}")
+    logger.info(f"[Training] Goal updated for user {user['id']}: {goal_upper}")
     
     return {
         "status": "updated",
