@@ -4546,97 +4546,18 @@ async def get_training_plan_v2(user: dict = Depends(auth_user)):
 
 
 @api_router.post("/training/refresh")
-async def refresh_training_context(user_id: str = "default"):
-    """Rafraîchit le contexte d'entraînement avec les dernières données"""
+async def refresh_training_plan(user: dict = Depends(auth_user)):
+    """
+    Force le recalcul complet du plan
+    (après sync Strava par exemple).
+    """
+    # Vider le cache pour cet utilisateur
+    from coach_service import _plan_cache
+    keys_to_remove = [k for k in _plan_cache if user["id"] in k]
+    for k in keys_to_remove:
+        del _plan_cache[k]
     
-    # Récupérer l'objectif
-    goal = await db.training_goals.find_one({"user_id": user_id}, {"_id": 0})
-    
-    if not goal:
-        return {"success": False, "message": "Aucun objectif défini"}
-    
-    # Récupérer les données récentes
-    today = datetime.now(timezone.utc)
-    seven_days_ago = today - timedelta(days=7)
-    twenty_eight_days_ago = today - timedelta(days=28)
-    
-    workouts_7 = await db.workouts.find({
-        "user_id": user_id,
-        "date": {"$gte": seven_days_ago.isoformat()}
-    }).to_list(100)
-    
-    workouts_28 = await db.workouts.find({
-        "user_id": user_id,
-        "date": {"$gte": twenty_eight_days_ago.isoformat()}
-    }).to_list(100)
-    
-    # Calculer les métriques
-    km_7 = sum(w.get("distance_km", 0) or 0 for w in workouts_7)
-    km_28 = sum(w.get("distance_km", 0) or 0 for w in workouts_28)
-    load_7 = km_7 * 10
-    load_28 = km_28 * 10
-    
-    # Calculer les charges quotidiennes pour la monotonie
-    daily_loads = []
-    for i in range(7):
-        day = today - timedelta(days=i)
-        day_str = day.strftime("%Y-%m-%d")
-        day_km = sum(
-            w.get("distance_km", 0) or 0 
-            for w in workouts_7 
-            if w.get("date", "").startswith(day_str)
-        )
-        daily_loads.append(day_km * 10)
-    
-    # Construire le contexte complet
-    fitness_data = {
-        "ctl": load_28 / 4 if load_28 > 0 else 30,
-        "atl": load_7 if load_7 > 0 else 35,
-        "load_7": load_7,
-        "load_28": load_28
-    }
-    
-    weekly_km = km_28 / 4 if km_28 > 0 else 20
-    context = build_training_context(fitness_data, weekly_km, daily_loads)
-    
-    # Calculer la semaine et phase
-    start_date = goal["start_date"]
-    cycle_weeks = goal["cycle_weeks"]
-    
-    # Convertir en datetime aware si nécessaire
-    if isinstance(start_date, datetime) and start_date.tzinfo is None:
-        start_date = start_date.replace(tzinfo=timezone.utc)
-    
-    if today < start_date:
-        current_week = 0
-    else:
-        delta_days = (today - start_date).days
-        current_week = min(delta_days // 7 + 1, cycle_weeks + 1)
-    
-    phase = determine_phase(current_week, cycle_weeks)
-    
-    # Sauvegarder le contexte
-    await db.training_context.update_one(
-        {"user_id": user_id},
-        {"$set": {
-            "user_id": user_id,
-            "context": context,
-            "current_week": current_week,
-            "phase": phase,
-            "updated_at": datetime.now(timezone.utc)
-        }},
-        upsert=True
-    )
-    
-    logger.info(f"[Training] Context refreshed for user {user_id}: week {current_week}, phase {phase}")
-    
-    return {
-        "success": True,
-        "current_week": current_week,
-        "phase": phase,
-        "context": context,
-        "recommendation": generate_week_recommendation(context, phase, goal["goal_type"])
-    }
+    return await generate_dynamic_training_plan(db, user["id"])
 
 
 @api_router.delete("/training/goal")
