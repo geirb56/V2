@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 import os
+import re
 import logging
 import random
 import secrets
@@ -183,7 +184,7 @@ class RateLimiter:
             return
         self._last_global_cleanup = now
         cutoff = now - 60
-        stale = [uid for uid, ts in self.requests.items() if not any(t > cutoff for t in ts)]
+        stale = [uid for uid, ts in self.requests.items() if not ts or ts[-1] <= cutoff]
         for uid in stale:
             del self.requests[uid]
 
@@ -397,7 +398,6 @@ class WorkoutCreate(BaseModel):
         if v is None:
             return v
         # Strip HTML tags to prevent stored XSS
-        import re
         v = re.sub(r"<[^>]+>", "", v)
         return v[:500]  # Cap length
 
@@ -3798,8 +3798,8 @@ async def garmin_authorize():
         {"$set": {
             "state": state,
             "code_verifier": code_verifier,
-            "created_at": datetime.now(timezone.utc).isoformat(),
-            "expires_at": (datetime.now(timezone.utc) + timedelta(minutes=10)).isoformat()
+            "created_at": datetime.now(timezone.utc),
+            "expires_at": datetime.now(timezone.utc) + timedelta(minutes=10)
         }},
         upsert=True
     )
@@ -3978,8 +3978,8 @@ async def strava_authorize(user_id: str = "default"):
             "state": state,
             "user_id": user_id,
             "provider": "strava",
-            "created_at": datetime.now(timezone.utc).isoformat(),
-            "expires_at": (datetime.now(timezone.utc) + timedelta(minutes=10)).isoformat()
+            "created_at": datetime.now(timezone.utc),
+            "expires_at": datetime.now(timezone.utc) + timedelta(minutes=10)
         }},
         upsert=True
     )
@@ -5514,20 +5514,23 @@ app.add_middleware(
 @app.on_event("startup")
 async def create_db_indexes():
     """Create MongoDB indexes for common query patterns"""
-    # Workouts: filter + sort by user and date
-    await db.workouts.create_index([("user_id", 1), ("date", -1)])
-    await db.workouts.create_index([("id", 1)], unique=True, sparse=True)
-    # Conversations / chat messages
-    await db.conversations.create_index([("user_id", 1), ("timestamp", 1)])
-    await db.chat_messages.create_index([("user_id", 1), ("timestamp", 1)])
-    # OAuth state store: auto-expire after 10 minutes
-    await db.oauth_states.create_index("state", unique=True)
-    await db.oauth_states.create_index("expires_at", expireAfterSeconds=0)
-    # Subscriptions / tokens
-    await db.subscriptions.create_index("user_id", unique=True, sparse=True)
-    await db.strava_tokens.create_index("user_id", unique=True, sparse=True)
-    await db.garmin_tokens.create_index("user_id", unique=True, sparse=True)
-    logger.info("MongoDB indexes created")
+    try:
+        # Workouts: filter + sort by user and date
+        await db.workouts.create_index([("user_id", 1), ("date", -1)])
+        await db.workouts.create_index([("id", 1)], sparse=True)
+        # Conversations / chat messages
+        await db.conversations.create_index([("user_id", 1), ("timestamp", 1)])
+        await db.chat_messages.create_index([("user_id", 1), ("timestamp", 1)])
+        # OAuth state store: auto-expire after TTL (expires_at stored as datetime)
+        await db.oauth_states.create_index("state", unique=True)
+        await db.oauth_states.create_index("expires_at", expireAfterSeconds=0)
+        # Subscriptions / tokens
+        await db.subscriptions.create_index("user_id", sparse=True)
+        await db.strava_tokens.create_index("user_id", sparse=True)
+        await db.garmin_tokens.create_index("user_id", sparse=True)
+        logger.info("MongoDB indexes created")
+    except Exception as e:
+        logger.warning(f"Could not create some MongoDB indexes: {e}")
 
 
 @app.on_event("shutdown")
